@@ -17,17 +17,22 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/shashank-tomar0/ao-arena/internal/referee"
+	"github.com/shashank-tomar0/ao-arena/internal/vcs"
 )
 
 func main() {
 	stdin := flag.Bool("stdin", false, "read unified diff from stdin")
 	j := flag.Bool("json", false, "emit verdict as JSON")
+	live := flag.Bool("live", false, "fetch the PR from GitHub (needs GITHUB_TOKEN)")
+	post := flag.Bool("post", false, "post verdict as check run + review comment (needs --live and GITHUB_TOKEN)")
 	flag.Parse()
 	args := flag.Args()
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: referee [-stdin] [-json] <repo> <pr-ref> [<head-sha>]")
+		fmt.Fprintln(os.Stderr, "usage: referee [-stdin|-live [-post]] [-json] <repo> <pr-ref> [<head-sha>]")
 		os.Exit(2)
 	}
 	repo, prRef := args[0], args[1]
@@ -46,17 +51,62 @@ func main() {
 		diff = string(b)
 	}
 
-	e := referee.NewEngine(nil)
-	pr := &referee.PRContext{
-		Repo:    repo,
-		PRRef:   prRef,
-		HeadRef: head,
-		Diff:    diff,
+	var pr *referee.PRContext
+	switch {
+	case *live:
+		num, err := strconv.Atoi(strings.TrimPrefix(prRef, "pr-"))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "live mode needs a numeric PR number:", err)
+			os.Exit(2)
+		}
+		vc, err := vcs.NewClient(repo)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "vcs:", err)
+			os.Exit(1)
+		}
+		data, err := vc.FetchPR(context.Background(), num)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "fetch PR:", err)
+			os.Exit(1)
+		}
+		pr = &referee.PRContext{
+			Repo:            repo,
+			PRRef:           fmt.Sprintf("pr-%d", num),
+			HeadRef:         data.HeadSHA[:12],
+			Diff:            data.Diff,
+			Body:            data.Body,
+			ClaimStatements: vcs.ExtractClaimStatements(data),
+		}
+	default:
+		pr = &referee.PRContext{
+			Repo:    repo,
+			PRRef:   prRef,
+			HeadRef: head,
+			Diff:    diff,
+		}
 	}
+
+	e := referee.NewEngine(nil)
 	out, err := e.Run(context.Background(), pr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "referee:", err)
 		os.Exit(1)
+	}
+
+	if *post && *live {
+		num, _ := strconv.Atoi(strings.TrimPrefix(prRef, "pr-"))
+		vc, err := vcs.NewClient(repo)
+		if err == nil {
+			conclusion := "neutral"
+			if !out.Verdict.Mergeable {
+				conclusion = "failure"
+			} else {
+				conclusion = "success"
+			}
+			_ = vc.PostCheckRun(context.Background(), num, "AO Arena Referee", conclusion,
+				out.Verdict.Summary, renderEvidence(out))
+			_ = vc.PostReviewComment(context.Background(), num, renderEvidence(out))
+		}
 	}
 
 	if *j {
@@ -76,4 +126,24 @@ func main() {
 		}
 	}
 	fmt.Println("receipt:", out.Verdict.ReceiptHash)
+}
+
+func renderEvidence(res *referee.Result) string {
+	var sb strings.Builder
+	sb.WriteString("## AO Arena Referee verdict\n\n")
+	sb.WriteString(res.Verdict.Summary + "\n\n")
+	sb.WriteString(fmt.Sprintf("**Trust score:** %0.1f/100\n\n", res.Verdict.TrustScore))
+	if len(res.Verdict.Findings) == 0 {
+		sb.WriteString("No findings.\n")
+		return sb.String()
+	}
+	sb.WriteString("### Findings\n\n")
+	for _, f := range res.Verdict.Findings {
+		sb.WriteString(fmt.Sprintf("- **[%s]** %s: %s\n", f.Severity, f.Category, f.Message))
+		if f.EvidencePath != "" {
+			sb.WriteString(fmt.Sprintf("  `%s`\n", f.EvidencePath))
+		}
+	}
+	sb.WriteString(fmt.Sprintf("\nReceipt: `%s`\n", res.Verdict.ReceiptHash))
+	return sb.String()
 }
