@@ -17,7 +17,8 @@ type Event struct {
 	Data any    `json:"data"`
 }
 
-// SessionCard mirrors the frontend card shape.
+// SessionCard mirrors the frontend card shape. Field casing must match the
+// TypeScript SessionCard exactly — the frontend reads msg.data.id etc.
 type SessionCard struct {
 	ID     string `json:"id"`
 	Fleet  string `json:"fleet"`
@@ -28,7 +29,8 @@ type SessionCard struct {
 	TS     int64  `json:"ts"`
 }
 
-// RefereeEvent is a finding as broadcast.
+// RefereeEvent is a finding as broadcast. Casing matches the frontend
+// RefereeEvent (fleet/severity/category/message/evidence/ts).
 type RefereeEvent struct {
 	Fleet    string `json:"fleet"`
 	Severity string `json:"severity"`
@@ -119,9 +121,13 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StartSSE serves the broadcast endpoint on localhost:port/events.
-func StartSSE(port int) *http.Server {
-	h := NewHub()
+// StartSSE serves the broadcast endpoint on localhost:port/events using the
+// given hub. The caller creates the hub so a match and the server share one
+// stream. Returns the started server.
+func StartSSE(h *Hub, port int) *http.Server {
+	if h == nil {
+		h = NewHub()
+	}
 	mux := http.NewServeMux()
 	mux.Handle("/events", h)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {

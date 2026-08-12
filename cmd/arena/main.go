@@ -73,21 +73,25 @@ func runMatch(ctx context.Context) {
 	specID := fs.String("spec", "rest-api-auth", "spec id to run")
 	_ = fs.Parse(os.Args[2:])
 
+	// Single shared hub — whether --serve is on or not, the match and
+	// the SSE server (if started) fan out the same stream.
+	hub := broadcast.NewHub()
+
 	if *serve {
-		go broadcast.StartSSE(8091)
+		go broadcast.StartSSE(hub, 8091)
 		fmt.Println("broadcast server: http://localhost:8091/events")
 		fmt.Println("open frontend:   http://localhost:5173 (vite dev)")
 	}
 
 	if *demo {
 		fmt.Println("match: demo race — honest vs dishonest fleet (deterministic)")
-		score := broadcast.ScriptedMatch(ctx, broadcast.NewHub(), *specID)
+		score := broadcast.ScriptedMatch(ctx, hub, *specID)
 		fmt.Print(broadcast.RenderFinale(score))
 		return
 	}
 
 	if *live {
-		runLiveMatch(ctx, *specID)
+		runLiveMatch(ctx, hub, *specID)
 		return
 	}
 
@@ -109,7 +113,7 @@ func runMatch(ctx context.Context) {
 	fmt.Println("log:", m.Log)
 }
 
-func runLiveMatch(ctx context.Context, specID string) {
+func runLiveMatch(ctx context.Context, hub *broadcast.Hub, specID string) {
 	aoBin, err := findAOBinary()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "live match needs 'ao' binary in PATH:", err)
@@ -118,9 +122,10 @@ func runLiveMatch(ctx context.Context, specID string) {
 	fmt.Println("match: live race on spec", specID)
 	fmt.Println("using AO binary:", aoBin)
 
-	// Broadcast hub (SSE)
-	hub := broadcast.NewHub()
-	go broadcast.StartSSE(8091)
+	if hub == nil {
+		hub = broadcast.NewHub()
+	}
+	go broadcast.StartSSE(hub, 8091)
 	fmt.Println("broadcast server: http://localhost:8091/events")
 
 	// Live runner with two fleets

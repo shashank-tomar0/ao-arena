@@ -76,6 +76,8 @@ func main() {
 			Diff:            data.Diff,
 			Body:            data.Body,
 			ClaimStatements: vcs.ExtractClaimStatements(data),
+			Mergeable:       data.Mergeable,
+			ChecksStatus:    data.ChecksStatus,
 		}
 	default:
 		pr = &referee.PRContext{

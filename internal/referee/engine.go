@@ -43,6 +43,8 @@ type PRContext struct {
 	MutatedTestOutput string
 	ClaimStatements   []string
 	SymbolIndex       map[string][]string // symbol -> file:line
+	Mergeable         *bool
+	ChecksStatus      map[string]string // check name -> conclusion
 }
 
 // SummaryFromBody returns the PR body used to extract claims, falling back
@@ -61,7 +63,7 @@ func NewEngine(client *http.Client) *Engine {
 	}
 	return &Engine{
 		Client:      client,
-		Checks:      []Check{NewSymbolRealityCheck(), NewClaimDiffCheck(), NewTheaterCheck()},
+		Checks:      []Check{NewSymbolRealityCheck(), NewClaimDiffCheck(), NewTheaterCheck(), NewMergeGateCheck()},
 		MaxFindings: 50,
 	}
 }
