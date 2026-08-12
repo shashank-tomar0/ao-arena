@@ -715,6 +715,29 @@ img, svg { display: block; max-width: 100%; }
 }
 @keyframes card-alert { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 16px oklch(0.70 0.19 27 / 0.25); } }
 
+/* Card pop-in on lane arrival — transform/opacity only */
+.task-card.is-new { animation: card-pop 0.4s var(--ease-out) both; }
+@keyframes card-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Lane flash when a card lands */
+.lane.flash { background: oklch(0.80 0.155 178 / 0.05); }
+.lane.flash .lane-head { border-bottom-color: var(--accent-cyan); }
+.lane.flash .lane-head { animation: lane-flash 0.5s var(--ease-out); }
+@keyframes lane-flash {
+  0% { color: var(--accent-cyan); }
+  100% { color: var(--ink-2); }
+}
+
+/* Scoreboard pulse on authoritative score */
+.score-pulse { animation: score-pulse 0.6s var(--ease-out); }
+@keyframes score-pulse {
+  0% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
 /* Evidence rail */
 .rail { border: 1px solid var(--rule-strong); border-radius: var(--radius-md); background: var(--paper-1); overflow: hidden; }
 .rail-head {
@@ -922,6 +945,168 @@ img, svg { display: block; max-width: 100%; }
   transition-delay: var(--reveal-delay, 0ms);
 }
 .reveal.in-view { opacity: 1; transform: none; }
+
+/* ============================================================
+   BROADCAST OVERLAY — OBS-ready, no chrome
+   ============================================================ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper-0);
+  padding: var(--space-5) var(--space-6);
+  overflow: hidden;
+}
+.overlay body::before { background: none; }
+
+.ov-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+}
+.ov-brand { font-family: var(--font-display); font-weight: 800; color: var(--ink-0); }
+.ov-brand span { color: var(--accent-cyan); }
+.ov-title { color: var(--ink-2); }
+.ov-live { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); color: var(--danger); }
+
+.ov-score {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.ov-fleet { text-align: center; }
+.ov-fleet-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ov-fleet.a .ov-fleet-name { color: var(--fleet-a); }
+.ov-fleet.b .ov-fleet-name { color: var(--fleet-b); }
+.ov-fleet-name span { color: var(--ink-2); font-weight: 400; }
+.ov-score-num {
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 12vh, 8rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-top: var(--space-2);
+}
+.ov-fleet.a .ov-score-num { color: var(--fleet-a); }
+.ov-fleet.b .ov-score-num { color: var(--fleet-b); }
+.ov-fleet-state {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-top: var(--space-2);
+}
+.ov-vs {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--accent-amber);
+  padding: 0 var(--space-8);
+  letter-spacing: 0.08em;
+}
+
+.ov-boards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  flex: 1;
+  min-height: 0;
+}
+.ov-board {
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper-1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ov-board-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.ov-lanes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  flex: 1;
+}
+.ov-lane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-right: 1px solid var(--rule);
+  padding: var(--space-2);
+}
+.ov-lane:last-child { border-right: none; }
+.ov-lane-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.ov-lane-cards {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--ink-0);
+}
+.ov-lane[data-lane='ci_failed'] .ov-lane-cards { color: var(--danger); }
+.ov-lane[data-lane='mergeable'] .ov-lane-cards,
+.ov-lane[data-lane='merged'] .ov-lane-cards { color: var(--ok); }
+
+.ov-ticker {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--rule-strong);
+  padding-top: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  overflow: hidden;
+  min-height: 44px;
+}
+.ov-ticker-label {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent-amber);
+}
+.ov-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--dur-glacial) linear infinite;
+  will-change: transform;
+}
+.ov-ticker-track .ticker-item { font-size: var(--text-2xs); }
 
 /* ============================================================
    MOBILE — 320 / 375 / 414 / 768 hard floor

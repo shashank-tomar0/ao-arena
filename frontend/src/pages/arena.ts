@@ -8,6 +8,8 @@ import { LANE_LABEL, type Lane, type RefereeEvent, type SessionCard } from '../t
 
 const cards = new Map<string, SessionCard>();
 const evidence: RefereeEvent[] = [];
+// Card id -> last rendered status, so only genuinely new/moved cards animate.
+const rendered = new Map<string, string>();
 let currentScore: [number, number] = [0, 0];
 let feed: Feed | null = null;
 
@@ -111,14 +113,28 @@ function renderBoard(fleet: 'a' | 'b') {
     const list = lane.querySelector('.cards');
     if (!list) return;
     const items = fleetCards.filter((c) => c.status === laneName).sort((a, b) => a.ts - b.ts);
+
+    // Flash the lane when a card lands here for the first time.
+    const movedIn = items.some((c) => rendered.get(c.id) !== laneName);
+    if (movedIn) {
+      lane.classList.remove('flash');
+      void lane.offsetWidth; // restart the animation
+      lane.classList.add('flash');
+    }
+
     list.innerHTML = items.map(
-      (c) => `
-      <div class="task-card ${c.status === 'ci_failed' ? 'alert' : ''}" title="${c.id}">
-        <span class="tc-label">${c.label}</span>
-        <span class="tc-branch">${c.branch}</span>
-        ${c.pr ? `<span class="tc-pr">${c.pr}</span>` : ''}
-      </div>`
+      (c) => {
+        const isNew = rendered.get(c.id) !== c.status;
+        return `
+        <div class="task-card ${c.status === 'ci_failed' ? 'alert' : ''} ${isNew ? 'is-new' : ''}" title="${c.id}">
+          <span class="tc-label">${c.label}</span>
+          <span class="tc-branch">${c.branch}</span>
+          ${c.pr ? `<span class="tc-pr">${c.pr}</span>` : ''}
+        </div>`;
+      }
     ).join('');
+
+    items.forEach((c) => rendered.set(c.id, laneName));
   });
 }
 
@@ -145,6 +161,12 @@ function renderScores() {
   const b = document.getElementById('score-b-pill')!;
   countUp(a, Math.round(currentScore[0]));
   countUp(b, Math.round(currentScore[1]));
+  // Brief pulse on the scoreboard when the authoritative score arrives.
+  [a, b].forEach((el) => {
+    el.classList.remove('score-pulse');
+    void el.offsetWidth;
+    el.classList.add('score-pulse');
+  });
 }
 
 function renderStatus(status: any) {
@@ -242,6 +264,7 @@ export function mountArena(): () => void {
     feed = null;
     cards.clear();
     evidence.length = 0;
+    rendered.clear();
     currentScore = [0, 0];
   };
 }

@@ -10,12 +10,14 @@ import { renderLanding } from './pages/landing';
 import { renderArena, mountArena } from './pages/arena';
 import { renderAudit, mountAudit } from './pages/audit';
 import { renderLeague, mountLeague } from './pages/league';
+import { renderOverlay, mountOverlay } from './pages/overlay';
 
-export type View = 'landing' | 'arena' | 'audit' | 'league';
+export type View = 'landing' | 'arena' | 'audit' | 'league' | 'overlay';
 
 interface Page {
   render: () => string;
   mount?: () => () => void;
+  bare?: boolean; // render without the pillnav (broadcast overlay)
 }
 
 const pages: Record<View, Page> = {
@@ -23,6 +25,7 @@ const pages: Record<View, Page> = {
   arena: { render: renderArena, mount: mountArena },
   audit: { render: renderAudit, mount: mountAudit },
   league: { render: renderLeague, mount: mountLeague },
+  overlay: { render: renderOverlay, mount: mountOverlay, bare: true },
 };
 
 const app = document.getElementById('app')!;
@@ -51,7 +54,7 @@ export function navigate(view: View): void {
   currentView = view;
 
   const page = pages[view];
-  app.innerHTML = pillnav() + page.render();
+  app.innerHTML = (page.bare ? '' : pillnav()) + page.render();
 
   // Wire navigation + active state.
   document.querySelectorAll<HTMLElement>('[data-nav]').forEach((el) => {
@@ -77,7 +80,7 @@ export function navigate(view: View): void {
 
 function viewFromHash(): View {
   const h = location.hash.replace(/^#/, '');
-  return (['arena', 'audit', 'league'] as View[]).includes(h as View) ? (h as View) : 'landing';
+  return (['arena', 'audit', 'league', 'overlay'] as View[]).includes(h as View) ? (h as View) : 'landing';
 }
 
 window.addEventListener('popstate', () => navigate(viewFromHash()));
