@@ -6,16 +6,14 @@ const clockEl = document.getElementById('clock')!;
 const scoreA = document.getElementById('score-a')!;
 const scoreB = document.getElementById('score-b')!;
 const evidenceList = document.getElementById('evidence-list')!;
+const runBtn = document.getElementById('run-match') as HTMLButtonElement;
+const statusEl = document.getElementById('match-status')!;
 
 const cards = new Map<string, SessionCard>();
 const evidence: RefereeEvent[] = [];
 let currentScore: [number, number] = [0, 0];
 
-const feed = createFeed(import.meta.env.VITE_MOCK !== 'false');
-
-function fleetText(fleet: 'a' | 'b'): string {
-  return fleet === 'a' ? 'Fleet A' : 'Fleet B';
-}
+const feed = createFeed();
 
 function renderBoard(fleet: 'a' | 'b') {
   const lanes = document.querySelectorAll<HTMLDivElement>(`.board[data-fleet="${fleet}"] .kanban`);
@@ -61,29 +59,12 @@ function renderScores() {
 
 feed.onSession((card) => {
   cards.set(card.id, card);
-  const board = card.fleet === 'a' ? '#board-a' : '#board-b';
-  const boardEl = document.querySelector(board);
-  // Build the lane columns once per board.
-  if (boardEl && !boardEl.querySelector('.kanban[data-lane]')) {
-    const kanban = boardEl.querySelector('.kanban');
-    if (kanban) {
-      (['pending', 'working', 'needs_input', 'ci_failed', 'changes_requested', 'review_pending', 'mergeable', 'merged'] as Lane[]).forEach((lane) => {
-        const div = document.createElement('div');
-        div.className = 'kanban';
-        div.dataset.lane = lane;
-        div.innerHTML = `<h3>${LANE_LABEL[lane]}</h3><div class="cards"></div>`;
-        boardEl.appendChild(div);
-      });
-      kanban.remove();
-    }
-  }
   renderBoard(card.fleet);
 });
 
 feed.onReferee((ev) => {
   evidence.push(ev);
   renderEvidence();
-  // A critical finding on a fleet drops that fleet's visible score.
   if (ev.severity === 'critical') {
     const idx = ev.fleet === 'a' ? 0 : 1;
     currentScore[idx] = Math.max(0, currentScore[idx] - 30);
@@ -103,6 +84,10 @@ feed.onClock((ms) => {
   clockEl.textContent = `${mm}:${ss}`;
 });
 
+feed.onStatus((st) => {
+  statusEl.textContent = `Status: ${JSON.stringify(st)}`;
+});
+
 // Seed a board container with its lane columns at build time.
 function initBoard(fleet: 'a' | 'b') {
   const boardEl = document.querySelector<HTMLDivElement>(fleet === 'a' ? '#board-a' : '#board-b')!;
@@ -118,4 +103,23 @@ initBoard('a');
 initBoard('b');
 
 renderScores();
+
+// Wire the Run Match button (real API call to /api/match).
+runBtn?.addEventListener('click', () => {
+  statusEl.textContent = 'Starting match...';
+  feed.runMatch().catch((e) => {
+    statusEl.textContent = 'Error: ' + e.message;
+  });
+});
+
 feed.start();
+// Poll server match status so the board reflects reality even without SSE.
+setInterval(async () => {
+  try {
+    const res = await fetch('/api/match/status');
+    const st = await res.json();
+    statusEl.textContent = 'Status: ' + JSON.stringify(st);
+  } catch {
+    // server not ready yet
+  }
+}, 2000);

@@ -29,6 +29,10 @@ var theaterPatterns = []*regexp.Regexp{
 	// Go: trying to be true
 	regexp.MustCompile(`assert\.True\(t, true\)`),
 	regexp.MustCompile(`require\.True\(t, true\)`),
+	// Go: bare `if true {` theater
+	regexp.MustCompile(`if\s+true\s*\{`),
+	// Go: assert.True with literal true constant
+	regexp.MustCompile(`assert\.True\([^)]*,\s*true\s*\)`),
 	// Empty test bodies
 	regexp.MustCompile(`test\(["'` + "`" + `][^"'` + "`" + `]*["'` + "`" + `],?\s*\(\s*\)\s*=>\s*\{\s*\}\)`),
 	regexp.MustCompile(`it\(["'` + "`" + `][^"'` + "`" + `]*["'` + "`" + `],?\s*\(\s*\)\s*=>\s*\{\s*\}\)`),
@@ -46,15 +50,22 @@ func (c *TheaterCheck) Name() string { return theaterCheckName }
 func (c *TheaterCheck) Run(ctx context.Context, pr *PRContext) ([]verdict.Finding, error) {
 	var findings []verdict.Finding
 
-	// 1) Static scan: theater patterns in the diff.
-	for i, line := range strings.Split(pr.Diff, "\n") {
+	// 1) Static scan: theater patterns in the diff (ignoring +/- prefix).
+	// Handle both LF and CRLF.
+	lines := strings.Split(strings.ReplaceAll(pr.Diff, "\r\n", "\n"), "\n")
+	for i, rawLine := range lines {
+		// Strip diff prefix (+, -, or space) for pattern matching.
+		line := rawLine
+		if len(line) > 0 && (line[0] == '+' || line[0] == '-' || line[0] == ' ') {
+			line = line[1:]
+		}
 		for _, re := range theaterPatterns {
 			if re.MatchString(line) {
 				findings = append(findings, verdict.Finding{
 					Category:     theaterCheckName,
 					Severity:     verdict.SeverityCritical,
 					Message:      "theater test: assertion does not verify behavior (" + re.String() + ")",
-					EvidencePath: "diff line " + itoa(i+1) + ": " + strings.TrimSpace(line),
+					EvidencePath: "diff line " + itoa(i+1) + ": " + strings.TrimSpace(rawLine),
 					Suggestion:   "replace assertion-free checks with assertions that fail when the code under test breaks",
 				})
 				break

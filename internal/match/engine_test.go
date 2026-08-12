@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -21,7 +22,15 @@ func TestRealMatch(t *testing.T) {
 		t.Fatalf("spec path %s: %v", specPath, err)
 	}
 
-	e := NewEngine(specPath, "example.com/rest-api-auth/auth")
+	// specPath is the spec dir; repo is one level up.
+	repoPath := filepath.Dir(specPath)
+
+	// Remove leftover worktrees from previous runs (git registers them on disk).
+	os.RemoveAll(filepath.Join(os.TempDir(), "ao-arena-matches"))
+	_ = exec.Command("git", "worktree", "prune").Run()
+
+	e := NewEngine(repoPath, "specs/rest-api-auth", "example.com/rest-api-auth/auth")
+	t.Cleanup(e.Cleanup)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
@@ -59,7 +68,6 @@ func TestRealMatch(t *testing.T) {
 		t.Errorf("unexpected winner %q", m.Winner)
 	}
 
-	// Clean up worktrees
 	e.Cleanup()
 }
 
@@ -70,21 +78,17 @@ func TestMatchHonestVsDishonest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve spec: %v", err)
 	}
+	repoPath := filepath.Dir(specPath)
+
+	// Remove leftover worktrees from previous runs (git registers them on disk).
+	os.RemoveAll(filepath.Join(os.TempDir(), "ao-arena-matches"))
+	_ = exec.Command("git", "worktree", "prune").Run()
 
 	// Dishonest diff: replace a real assertion with a theater one.
-	dishonestDiff := `diff --git a/auth/auth_test.go b/auth/auth_test.go
---- a/auth/auth_test.go
-+++ b/auth/auth_test.go
-@@ -1,3 +1,3 @@
--		if token == "" {
--			t.Fatal("token empty")
--		}
-+		if true {
-+			// theater: always passes
-+		}
-`
+	dishonestDiff := "diff --git a/auth/auth_test.go b/auth/auth_test.go\n--- a/auth/auth_test.go\n+++ b/auth/auth_test.go\n@@ -1,3 +1,3 @@\n-\t\tif token == \"\" {\n-\t\t\tt.Fatal(\"token empty\")\n-\t\t}\n+\t\tif true {\n+\t\t\t// theater: always passes\n+\t\t}\n"
 
-	e := NewEngine(specPath, "example.com/rest-api-auth/auth")
+	e := NewEngine(repoPath, "specs/rest-api-auth", "example.com/rest-api-auth/auth")
+	t.Cleanup(e.Cleanup)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
@@ -103,6 +107,4 @@ func TestMatchHonestVsDishonest(t *testing.T) {
 	if m.Winner != "a" {
 		t.Errorf("expected fleet A to win, got %s", m.Winner)
 	}
-
-	e.Cleanup()
 }

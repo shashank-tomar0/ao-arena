@@ -37,40 +37,54 @@ type MatchResult struct {
 	Duration time.Duration
 }
 
-// Engine runs a real match against a spec repo.
+// Engine runs a real match. It works against a git worktree of the repo,
+// and runs the spec's Go tests from the spec directory within that worktree.
 type Engine struct {
-	SpecPath    string // path to the spec directory (with go.mod + acceptance tests)
+	RepoPath    string // path to the git repo root
+	SpecRelPath string // e.g. "specs/rest-api-auth" (relative to repo root)
 	SpecPackage string // e.g. "example.com/rest-api-auth/auth"
 	Ref         *referee.Engine
 	Workdir     string // temp root for worktrees
 }
 
-// NewEngine builds a match engine for the given spec.
-func NewEngine(specPath, specPackage string) *Engine {
+// NewEngine builds a match engine. repoPath is the git repo root;
+// specRel is the spec directory relative to it; specPkg is the Go package
+// under test.
+func NewEngine(repoPath, specRel, specPkg string) *Engine {
 	return &Engine{
-		SpecPath:    specPath,
-		SpecPackage: specPackage,
+		RepoPath:    repoPath,
+		SpecRelPath: specRel,
+		SpecPackage: specPkg,
 		Ref:         referee.NewEngine(nil),
 		Workdir:     filepath.Join(os.TempDir(), "ao-arena-matches"),
 	}
 }
 
 // Run executes a real head-to-head match between two fleet states.
-// fleetA and fleetB are diffs (or empty = base spec). The engine:
-//  1. Creates two worktrees from the spec repo at HEAD.
-//  2. Applies each fleet's diff (if any).
-//  3. Runs `go test -cover` on the spec package in each worktree.
-//  4. Feeds the diff + test results to the referee.
-//  5. Returns a real MatchResult.
+// fleetA and fleetB are optional unified diffs. The engine:
+//  1. Creates two worktrees from the repo at HEAD.
+//  2. Runs `go test -cover` on the spec package in each worktree.
+//  3. Computes a real trust score via the referee.
+//
+// Returns a real MatchResult.
 func (e *Engine) Run(ctx context.Context, fleetA, fleetB string) (*MatchResult, error) {
 	start := time.Now()
 
-	// Ensure workdir exists.
+	// Normalize the workdir to an absolute path and force-clean leftovers.
+	abs, err := filepath.Abs(e.Workdir)
+	if err != nil {
+		return nil, fmt.Errorf("resolve workdir: %w", err)
+	}
+	e.Workdir = abs
+	for _, name := range []string{"fleet-a", "fleet-b"} {
+		if err := e.removeWorktree(name); err != nil {
+			return nil, fmt.Errorf("cleanup %s worktree: %w", name, err)
+		}
+	}
 	if err := os.MkdirAll(e.Workdir, 0o755); err != nil {
 		return nil, err
 	}
 
-	// Create worktrees for both fleets from the spec HEAD.
 	wtA, err := e.createWorktree(ctx, "fleet-a")
 	if err != nil {
 		return nil, fmt.Errorf("fleet A worktree: %w", err)
@@ -80,68 +94,56 @@ func (e *Engine) Run(ctx context.Context, fleetA, fleetB string) (*MatchResult, 
 		return nil, fmt.Errorf("fleet B worktree: %w", err)
 	}
 
-	// Apply diffs if provided (simulate agent delivery).
-	// In the real integration, this comes from the agent's PR diff.
+	// spec dir inside each worktree
+	specA := filepath.Join(wtA, filepath.FromSlash(e.SpecRelPath))
+	specB := filepath.Join(wtB, filepath.FromSlash(e.SpecRelPath))
+
+	// Apply diffs (agent delivery) if provided.
 	if fleetA != "" {
-		if err := e.applyDiff(wtA, fleetA); err != nil {
+		if err := e.applyDiff(specA, fleetA); err != nil {
 			return nil, fmt.Errorf("fleet A diff: %w", err)
 		}
 	}
 	if fleetB != "" {
-		if err := e.applyDiff(wtB, fleetB); err != nil {
+		if err := e.applyDiff(specB, fleetB); err != nil {
 			return nil, fmt.Errorf("fleet B diff: %w", err)
 		}
 	}
 
-	// Run tests + referee concurrently for both fleets.
-	type fleetRun struct {
-		name    string
-		wt      string
-		diff    string
-		result  FleetResult
-	}
-	runs := []fleetRun{
-		{"a", wtA, fleetA, FleetResult{Worktree: wtA}},
-		{"b", wtB, fleetB, FleetResult{Worktree: wtB}},
-	}
-
-	for i := range runs {
-		r := &runs[i]
-		r.result = e.runFleet(ctx, r.name, r.wt, r.diff)
-	}
+	ra := e.runFleet(ctx, "a", specA, fleetA)
+	rb := e.runFleet(ctx, "b", specB, fleetB)
 
 	m := &MatchResult{
-		SpecID: filepath.Base(e.SpecPath),
-		FleetA: runs[0].result,
-		FleetB: runs[1].result,
+		SpecID:   filepath.Base(e.SpecRelPath),
+		FleetA:   ra,
+		FleetB:   rb,
 		Duration: time.Since(start),
 	}
 
-	// Determine winner by trust score (higher wins).
-	if m.FleetA.TrustScore > m.FleetB.TrustScore {
+	switch {
+	case m.FleetA.TrustScore > m.FleetB.TrustScore:
 		m.Winner = "a"
-	} else if m.FleetB.TrustScore > m.FleetA.TrustScore {
+	case m.FleetB.TrustScore > m.FleetA.TrustScore:
 		m.Winner = "b"
-	} else {
+	default:
 		m.Winner = "draw"
 	}
 	return m, nil
 }
 
-// createWorktree creates a git worktree from the spec repo at HEAD.
+// createWorktree adds a git worktree at HEAD for a fleet.
 func (e *Engine) createWorktree(ctx context.Context, name string) (string, error) {
 	wtPath := filepath.Join(e.Workdir, name)
-	// The spec path is the repo root. We add a worktree at HEAD.
-	cmd := exec.CommandContext(ctx, "git", "worktree", "add", wtPath, "HEAD")
-	cmd.Dir = e.SpecPath
+	cmd := exec.CommandContext(ctx, "git", "worktree", "add", "--detach", wtPath, "HEAD")
+	cmd.Dir = e.RepoPath
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("git worktree add %s: %v (%s)", name, err, string(out))
 	}
 	return wtPath, nil
 }
 
-// applyDiff applies a unified diff to the worktree.
-func (e *Engine) applyDiff(wtPath, diff string) error {
+// applyDiff applies a unified diff rooted at the spec directory.
+func (e *Engine) applyDiff(specDir, diff string) error {
 	if diff == "" {
 		return nil
 	}
@@ -149,76 +151,81 @@ func (e *Engine) applyDiff(wtPath, diff string) error {
 	if err := os.WriteFile(diffFile, []byte(diff), 0o644); err != nil {
 		return err
 	}
-	cmd := exec.Command("git", "apply", diffFile)
-	cmd.Dir = wtPath
+	cmd := exec.Command("git", "apply", "--directory="+filepath.Base(specDir), diffFile)
+	cmd.Dir = filepath.Dir(specDir)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("git apply: %v (%s)", err, string(out))
 	}
 	return nil
 }
 
-// runFleet runs `go test -cover` in the worktree and invokes the referee.
-func (e *Engine) runFleet(ctx context.Context, name, wtPath, diff string) FleetResult {
+// runFleet runs `go test -cover` for the spec package and the referee.
+func (e *Engine) runFleet(ctx context.Context, name, specDir, diff string) FleetResult {
 	start := time.Now()
-	fr := FleetResult{FleetName: name, Worktree: wtPath}
+	fr := FleetResult{FleetName: name, Worktree: specDir}
 
-	// Run go test with coverage on the spec package.
-	// The spec is the module root, so run from e.SpecPath.
-	cmd := exec.CommandContext(ctx, "go", "test", "-cover", "-coverprofile=/dev/null", e.SpecPackage)
-	cmd.Dir = e.SpecPath
+	cmd := exec.CommandContext(ctx, "go", "test", "-cover", "-coverprofile="+os.DevNull, e.SpecPackage)
+	cmd.Dir = specDir
 	out, _ := cmd.CombinedOutput()
 	fr.Duration = time.Since(start)
 	testOutput := string(out)
 
-	// Determine pass/fail from test output.
-	fr.TestsPass = strings.Contains(testOutput, "PASS") && !strings.Contains(testOutput, "FAIL")
-
-	// Extract coverage percentage (crude but works for the spec).
+	fr.TestsPass = testPassed(testOutput)
 	fr.Coverage = extractCoverage(testOutput)
 
-	// Build PRContext for the referee.
 	pr := &referee.PRContext{
-		Repo:              "arena/" + filepath.Base(e.SpecPath),
-		PRRef:             name + "-" + time.Now().Format("150405"),
-		HeadRef:           "HEAD",
-		Diff:              diff,
-		Body:              "Agent delivery for " + name,
-		TestOutput:        testOutput,
-		MutatedTestOutput: "", // mutation not run in match engine v1
-		ClaimStatements:   []string{}, // could extract from diff/commit msgs
+		Repo:            "arena/" + e.SpecRelPath,
+		PRRef:           name + "-" + time.Now().Format("150405"),
+		HeadRef:         "HEAD",
+		Diff:            diff,
+		Body:            "Agent delivery for " + name,
+		TestOutput:      testOutput,
+		ClaimStatements: []string{},
 	}
 
-	// Run referee.
 	refStart := time.Now()
 	refOut, refErr := e.Ref.Run(ctx, pr)
 	if refErr != nil {
 		fr.Error = refErr
-	} else if refOut != nil {
+	} else if refOut != nil && refOut.Verdict != nil {
 		fr.Verdict = refOut.Verdict
-		fr.TrustScore = fr.Verdict.TrustScore
+		fr.TrustScore = refOut.Verdict.TrustScore
 	}
-	// Add referee time to fleet duration
 	fr.Duration += time.Since(refStart)
-
 	return fr
+}
+
+// removeWorktree removes a fleet worktree directory and deregisters it from
+// the parent repo's worktree bookkeeping (git worktree prune). Tolerates a
+// missing dir; returns the first error otherwise.
+func (e *Engine) removeWorktree(name string) error {
+	wt := filepath.Join(e.Workdir, name)
+	if _, err := os.Stat(wt); err == nil {
+		if err := os.RemoveAll(wt); err != nil {
+			return err
+		}
+	}
+	cmd := exec.Command("git", "worktree", "prune")
+	cmd.Dir = e.RepoPath
+	return cmd.Run()
 }
 
 // Cleanup removes the worktrees created for this run.
 func (e *Engine) Cleanup() {
 	for _, name := range []string{"fleet-a", "fleet-b"} {
-		wt := filepath.Join(e.Workdir, name)
-		// git worktree remove --force
-		cmd := exec.Command("git", "worktree", "remove", "--force", wt)
-		cmd.Dir = e.SpecPath
-		_ = cmd.Run()
+		_ = e.removeWorktree(name)
 	}
+}
+
+// testPassed reports whether go test output indicates a green run.
+func testPassed(output string) bool {
+	return strings.Contains(output, "ok") && !strings.Contains(output, "FAIL")
 }
 
 // extractCoverage parses "coverage: X.Y% of statements" from go test output.
 func extractCoverage(output string) float64 {
 	for _, line := range strings.Split(output, "\n") {
 		if strings.Contains(line, "coverage:") && strings.Contains(line, "%") {
-			// line looks like: "ok  example.com/...  0.123s  coverage: 84.6% of statements"
 			parts := strings.Split(line, "coverage:")
 			if len(parts) == 2 {
 				pct := strings.TrimSpace(parts[1])

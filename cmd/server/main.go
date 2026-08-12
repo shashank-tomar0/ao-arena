@@ -40,7 +40,8 @@ func main() {
 	}
 
 	// Build the real match engine against the spec.
-	matchEngine := match.NewEngine(specPath, "example.com/rest-api-auth/auth")
+	repoPath := filepath.Dir(specPath)
+	matchEngine := match.NewEngine(repoPath, "specs/rest-api-auth", "example.com/rest-api-auth/auth")
 
 	app := &App{
 		hub:         broadcast.NewHub(),
@@ -82,8 +83,8 @@ func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleSpec(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	spec := map[string]string{
-		"id":          filepath.Base(a.matchEngine.SpecPath),
-		"name":        filepath.Base(a.matchEngine.SpecPath),
+		"id":          filepath.Base(a.matchEngine.SpecRelPath),
+		"name":        filepath.Base(a.matchEngine.SpecRelPath),
 		"description": "REST API with authentication",
 	}
 	json.NewEncoder(w).Encode(spec)
@@ -175,7 +176,11 @@ func (a *App) broadcastVerdict(fleet string, fr match.FleetResult) {
 		})
 	}
 	// Also broadcast score updates
-	a.hub.BroadcastScore(fr.TrustScore, 0) // other fleet score sent separately
+	if fleet == "a" {
+		a.hub.BroadcastScore(fr.TrustScore, 0)
+	} else {
+		a.hub.BroadcastScore(0, fr.TrustScore)
+	}
 }
 
 func (a *App) handleMatchStatus(w http.ResponseWriter, r *http.Request) {
