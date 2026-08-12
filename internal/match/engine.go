@@ -98,14 +98,16 @@ func (e *Engine) Run(ctx context.Context, fleetA, fleetB string) (*MatchResult, 
 	specA := filepath.Join(wtA, filepath.FromSlash(e.SpecRelPath))
 	specB := filepath.Join(wtB, filepath.FromSlash(e.SpecRelPath))
 
-	// Apply diffs (agent delivery) if provided.
+	// Apply diffs (agent delivery) if provided. git apply resolves paths
+	// against the repository root, so we run it from the worktree root with
+	// the spec-relative directory prefix.
 	if fleetA != "" {
-		if err := e.applyDiff(specA, fleetA); err != nil {
+		if err := e.applyDiff(wtA, e.SpecRelPath, fleetA); err != nil {
 			return nil, fmt.Errorf("fleet A diff: %w", err)
 		}
 	}
 	if fleetB != "" {
-		if err := e.applyDiff(specB, fleetB); err != nil {
+		if err := e.applyDiff(wtB, e.SpecRelPath, fleetB); err != nil {
 			return nil, fmt.Errorf("fleet B diff: %w", err)
 		}
 	}
@@ -142,8 +144,12 @@ func (e *Engine) createWorktree(ctx context.Context, name string) (string, error
 	return wtPath, nil
 }
 
-// applyDiff applies a unified diff rooted at the spec directory.
-func (e *Engine) applyDiff(specDir, diff string) error {
+// applyDiff applies a unified diff whose paths are relative to the spec
+// directory (e.g. "auth/auth_test.go"), from the worktree root with the
+// spec-relative directory prefix. It fails loudly if the patch produced no
+// changes — a silent skip would otherwise let dishonest agent diffs pass
+// through unapplied.
+func (e *Engine) applyDiff(worktree, specRel, diff string) error {
 	if diff == "" {
 		return nil
 	}
@@ -151,10 +157,22 @@ func (e *Engine) applyDiff(specDir, diff string) error {
 	if err := os.WriteFile(diffFile, []byte(diff), 0o644); err != nil {
 		return err
 	}
-	cmd := exec.Command("git", "apply", "--directory="+filepath.Base(specDir), diffFile)
-	cmd.Dir = filepath.Dir(specDir)
+	cmd := exec.Command("git", "apply", "--directory="+filepath.ToSlash(specRel), diffFile)
+	cmd.Dir = worktree
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("git apply: %v (%s)", err, string(out))
+	}
+
+	// Prove the patch actually changed files. `git apply` can silently skip
+	// a patch it cannot locate; that must be an error, not a silent pass.
+	changed := exec.Command("git", "diff", "--name-only")
+	changed.Dir = worktree
+	out, err := changed.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("verify apply: %v", err)
+	}
+	if strings.TrimSpace(string(out)) == "" {
+		return fmt.Errorf("git apply produced no changes — patch was skipped")
 	}
 	return nil
 }
