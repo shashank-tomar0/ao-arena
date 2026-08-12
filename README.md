@@ -146,6 +146,14 @@ The match engine tests prove nothing is fake: `TestMatchHonestVsDishonest` appli
 dishonest fixture and asserts the patch **actually lands** (the build breaks on the
 hallucinated symbol), the referee catches both criticals, and the honest fleet wins.
 
+## Design
+
+The UI follows the **Hallmark** anti-slop design discipline (Marquee Hero macrostructure):
+- **Broadcast console** hero + live marquee ticker — the Kanban board IS the broadcast.
+- Full **OKLCH token system** (`frontend/src/design-tokens.css`): ink arena paper, cyan trust + amber energy anchors, hairline rule language, motion tokens. Brand anchors (Space Grotesk + JetBrains Mono, cyan/amber on deep ink) preserved.
+- **Motion, not noise**: marquee ticker, score count-up, scroll-reveal with stagger, card lift — transform/opacity only, `prefers-reduced-motion` collapses everything.
+- Floating pill nav (N5) and statement footer (Ft5). Mobile verified at 320/375/414/768 — `overflow-x: clip`, single-column collapse, no two-line CTAs.
+
 ## Hackathon
 
 Built for **The Orchestra** — AO's first hackathon (Aug 12–13, 2026). The demo video shows

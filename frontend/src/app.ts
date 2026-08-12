@@ -5,6 +5,7 @@
  */
 
 import './styles.css';
+import { initReveal } from './motion';
 import { renderLanding } from './pages/landing';
 import { renderArena, mountArena } from './pages/arena';
 import { renderAudit, mountAudit } from './pages/audit';
@@ -28,22 +29,19 @@ const app = document.getElementById('app')!;
 let currentView: View = 'landing';
 let cleanup: (() => void) | null = null;
 
-function topbar(): string {
+// N5 floating pill nav — rendered above every view.
+function pillnav(): string {
   return `
-    <header class="topbar">
-      <div class="container topbar-inner">
-        <button class="logo logo-btn" data-nav="landing">AO<span class="logo-accent">▲</span>ARENA</button>
-        <nav class="topnav">
-          <button class="nav-link" data-nav="arena">Arena</button>
-          <button class="nav-link" data-nav="audit">Audit</button>
-          <button class="nav-link" data-nav="league">League</button>
-        </nav>
-        <div class="flex gap-3" style="margin-left: auto; align-items: center;">
-          <span id="clock" class="clock">--:--</span>
-          <a href="https://github.com/shashank-tomar0/ao-arena" target="_blank" class="btn btn-ghost">GitHub ↗</a>
-        </div>
+    <nav class="pillnav" aria-label="Primary">
+      <button class="logo" data-nav="landing">AO<span class="logo-accent">▲</span>ARENA</button>
+      <div class="pillnav-links">
+        <button class="nav-link" data-nav="arena">Arena</button>
+        <button class="nav-link" data-nav="audit">Audit</button>
+        <button class="nav-link" data-nav="league">League</button>
       </div>
-    </header>
+      <span id="clock" class="pillnav-clock">--:--</span>
+      <a class="pillnav-gh" href="https://github.com/shashank-tomar0/ao-arena" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
   `;
 }
 
@@ -53,7 +51,7 @@ export function navigate(view: View): void {
   currentView = view;
 
   const page = pages[view];
-  app.innerHTML = topbar() + page.render();
+  app.innerHTML = pillnav() + page.render();
 
   // Wire navigation + active state.
   document.querySelectorAll<HTMLElement>('[data-nav]').forEach((el) => {
@@ -65,13 +63,12 @@ export function navigate(view: View): void {
 
   if (page.mount) cleanup = page.mount() ?? null;
 
-  // Entrance animations.
-  requestAnimationFrame(() => {
-    document.querySelectorAll('.animate-slide-up, .animate-scale-in').forEach((el) => {
-      (el as HTMLElement).style.opacity = '1';
-      (el as HTMLElement).style.transform = 'none';
-    });
+  // Scroll-reveal + stagger for this view's content.
+  const reveals = document.querySelectorAll('.reveal');
+  reveals.forEach((el, i) => {
+    (el as HTMLElement).style.setProperty('--reveal-delay', `${Math.min(i, 8) * 60}ms`);
   });
+  initReveal(app);
 
   if (location.hash !== `#${view}`) {
     history.pushState({ view }, '', view === 'landing' ? '#' : `#${view}`);
