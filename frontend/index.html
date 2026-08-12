@@ -3,44 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AO Arena — Broadcast</title>
-    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="description" content="AO Arena — Verification-as-officiating for AI agent fleets. Real tests. Real referee. Real trust." />
+    <meta name="theme-color" content="#05080e" />
+    <title>AO Arena — Verification-as-officiating for AI agent fleets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap">
+    <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <div id="app">
-      <header id="topbar">
-        <span class="logo">AO▲ARENA</span>
-        <span id="match-title">Season 0 · Round 1</span>
-        <span id="clock">--:--</span>
-      </header>
-
-      <main>
-        <section id="boards">
-          <div class="board" id="board-a" data-fleet="a">
-            <h2>Fleet A</h2>
-          </div>
-          <div class="vs">VS</div>
-          <div class="board" id="board-b" data-fleet="b">
-            <h2>Fleet B</h2>
-          </div>
-        </section>
-
-        <section id="right">
-          <section id="scoreboard">
-            <div class="score" id="score-a">0</div>
-            <div class="label">TRUST SCORE</div>
-            <div class="score" id="score-b">0</div>
-            <button id="run-match">▶ Run Match</button>
-            <div id="match-status">Status: idle</div>
-          </section>
-
-          <aside id="evidence">
-            <h3>Referee evidence</h3>
-            <ul id="evidence-list"></ul>
-          </aside>
-        </section>
-      </main>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="app"></div>
   </body>
 </html>
