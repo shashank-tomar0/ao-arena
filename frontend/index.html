@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AO Arena — Broadcast</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="topbar">
+        <span class="logo">AO▲ARENA</span>
+        <span id="match-title">Season 0 · Round 1</span>
+        <span id="clock">--:--</span>
+      </header>
+
+      <main>
+        <section id="boards">
+          <div class="board" id="board-a">
+            <h2>Fleet A</h2>
+            <div class="kanban" data-lane="pending"></div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="board" id="board-b">
+            <h2>Fleet B</h2>
+            <div class="kanban" data-lane="pending"></div>
+          </div>
+        </section>
+
+        <section id="scoreboard">
+          <div class="score" id="score-a">0</div>
+          <div class="label">TRUST SCORE</div>
+          <div class="score" id="score-b">0</div>
+        </section>
+
+        <aside id="evidence">
+          <h3>Referee evidence</h3>
+          <ul id="evidence-list"></ul>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
