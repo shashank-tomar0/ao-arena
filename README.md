@@ -2,7 +2,11 @@
 
 **Verification-as-officiating for AI agent fleets.**
 
-AO Arena is a competitive platform where autonomous coding agent fleets race head-to-head on real engineering challenges. Each fleet is built with [Agent Orchestrator (AO)](https://github.com/Untrivial-ai/agent-orchestrator) — parallel workers in isolated worktrees, live PRs, real CI. Matches are officiated by **the Referee**, a deterministic verification engine that audits agent work against reality: it catches hallucinated APIs, theater tests, and ghost claims with file:line evidence.
+AO Arena is a competitive platform where autonomous coding agent fleets race head-to-head on
+real engineering challenges. Each fleet is built with [Agent Orchestrator (AO)](https://github.com/Untrivial-ai/agent-orchestrator) —
+parallel workers in isolated worktrees, live PRs, real CI. Matches are officiated by
+**the Referee**, a deterministic verification engine that audits agent work against reality:
+it catches hallucinated APIs, theater tests, and ghost claims with file:line evidence.
 
 This is the trust layer for AI-generated code — made watchable.
 
@@ -16,21 +20,18 @@ Agent velocity has outrun human inspection. PRs land that nobody truly read, con
 
 The Referee turns "trust me" into "show me the evidence."
 
-## Architecture
+## Product
 
-```
-cmd/
-  arena/           CLI entrypoint (arena init, match, referee, league)
-  referee/         Single-binary verification engine (the referee)
-internal/
-  arena/           Match orchestration, bracket logic, ELO, spec registry
-  referee/         Check modules: symbol-reality, test-reality, claim-diff
-  ao/              AO client: daemon management, session fleet control, SSE consumer
-  vcs/             GitHub client (PR, checks, reviews, webhooks)
-  broadcast/       SSE hub for the live broadcast UI
-frontend/          Live broadcast overlay (Vite + TS, embeddable)
-specs/             Challenge specs (PRD + acceptance tests) — the "maps"
-```
+The web app (Go server + vanilla-TS frontend, one binary) ships four surfaces:
+
+| Surface | What it does |
+|---|---|
+| **Landing** | The pitch: verification-as-officiating, deterministic checks, specs. |
+| **Arena** | Live head-to-head: two AO Kanban boards, referee evidence rail, scoreboard. "Run Match" runs a **real** match — real git worktrees, real `go test -cover`, real referee verdicts streamed over SSE. |
+| **Audit** | Referee-as-a-service: paste any PR diff, get an evidence-grade verdict (score ring, findings, receipt hash). |
+| **League** | Persistent season: ELO standings + activity log, stored as JSON on disk (`arena_data/league.json`). |
+
+The standalone `referee` binary + GitHub Action gate any agent PR in any repo.
 
 ## The Referee
 
@@ -38,134 +39,119 @@ Deterministic verification, not LLM-as-judge:
 
 | Check | What it catches | Evidence output |
 |---|---|---|
-| **Symbol realism** | Hallucinated imports/calls | file:line of each unresolved symbol |
-| **Test reality** | Theater tests (`expect(true).toBe(true)`, empty it()) | diff line + mutation-differential proof |
+| **Symbol reality** | Hallucinated imports/calls | file:line of each unresolved symbol |
+| **Test reality** | Theater tests (`expect(true).toBe(true)`, `if true {}`) + mutation-differential proof | diff line + mutation proof |
 | **Claim vs. diff** | Ghost claims in PR summaries | claimed → verified/refuted per statement |
-| **Behavior preservation** | Silent refactor drift | differential harness diff (future) |
+| **Merge gate** | CI status, conflicts, coverage sanity | check name + conclusion |
+
+Every verdict carries a **tamper-evident receipt hash** over the canonical findings.
 
 ## Getting started
 
 ### Prerequisites
 
 - Go 1.22+
-- Node 22+ (for frontend dev)
+- Node 22+ (frontend dev only — the server embeds a prebuilt UI)
 
-### Build
+### Run the full-stack server (one binary)
 
 ```bash
-git clone https://github.com/shashank-tomar0/ao-arena
-cd ao-arena
-go build ./...
+go build -o bin/arena-server ./cmd/server
+./bin/arena-server            # http://127.0.0.1:8080
 ```
 
-This produces two binaries:
+The server serves the web app, the REST API, and the SSE broadcast stream on one port.
 
-- `./cmd/referee/referee` — standalone PR auditor
-- `./cmd/arena/arena` — match runner + league table
+| Env var | Default | Purpose |
+|---|---|---|
+| `PORT` | `8080` | HTTP port |
+| `SPEC_PATH` | `specs/rest-api-auth` | Spec used for real matches |
+| `ARENA_STORE` | `arena_data/league.json` | Persistent league/history store |
+| `REPO_ROOT` | `.` | Git repo root containing `specs/` |
 
-### Live demo (30 seconds)
+### Frontend dev (hot reload)
 
 ```bash
-# Terminal 1: start the broadcast hub (SSE on :8091)
-arena match --demo --serve
-
-# Terminal 2: run the deterministic race (honest vs dishonest fleet)
-arena match --demo
-
-# Terminal 3 (optional): serve the broadcast UI
-cd frontend && npm run dev
-# open http://localhost:5173
+cd frontend
+npm install
+npm run dev                  # http://localhost:5173 (proxy-less; use the Go server for API)
 ```
 
-The `--demo` flag runs a fully scripted, deterministic match:
-- Fleet A ships fast but fakes it (theater test + hallucinated symbol)
-- Fleet B ships honest
-- The referee catches Fleet A **live on the Kanban board**
-- Scoreboard: Fleet A 30, Fleet B 100 → Fleet B wins
-
-No AO daemons, no GitHub, no CI needed — it's the unbreakable on-stage demo.
-
-### Standalone referee (audit any PR)
+To rebuild the embedded UI after frontend changes:
 
 ```bash
-# With a local diff
-cat my-pr.diff | referee --stdin owner/repo pr-123
+./scripts/sync-frontend.sh   # builds frontend → syncs cmd/server/static → rebuild server binary
+```
+
+### CLI
+
+```bash
+# Real honest-vs-dishonest match on the spec (real worktrees + real go test)
+go run ./cmd/arena match
+
+# Standalone referee: audit any diff (stdin)
+cat my-pr.diff | go run ./cmd/referee --stdin owner/repo pr-123
 
 # Live from GitHub (needs GITHUB_TOKEN)
-referee owner/repo 123 --live
+go run ./cmd/referee owner/repo 123 --live --post
 
-# Post verdict as check run + PR comment
-referee owner/repo 123 --live --post
-
-# Machine-readable
-referee owner/repo 123 --live --json
+# Deterministic scripted demo for the demo video (no AO daemons needed)
+go run ./cmd/arena match --demo --serve
 ```
 
 ### GitHub Action
 
-Any repo can drop this in `.github/workflows/referee.yml`:
+Drop `.github/workflows/referee.yml` into any repo — the referee posts a check run + review
+comment with file:line evidence on every agent PR.
 
-```yaml
-name: referee
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
-jobs:
-  referee:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: shashank-tomar0/ao-arena@main
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          threshold: '70'
+## API
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/health` | Liveness |
+| `POST` | `/api/match` | Start a real match (`fleet_a_diff`/`fleet_b_diff` optional; empty = honest-vs-dishonest fixtures) |
+| `GET` | `/api/match/status` | Latest match result |
+| `POST` | `/api/audit` | Run the referee on `{diff, body}` → verdict JSON |
+| `GET` | `/api/league` | ELO standings + record count |
+| `GET` | `/api/history` | Recent matches + audits |
+| `GET` | `/events` | SSE broadcast (session cards, referee findings, scores, status) |
+
+## Architecture
+
+```
+cmd/
+  server/            Full-stack web server (REST + SSE + embedded frontend)
+  arena/             CLI: match (real), referee, league
+  referee/           Standalone referee binary (stdin / --live / --post)
+internal/
+  match/             Real match engine: git worktrees, go test -cover, fixtures
+  referee/           Check modules: symbol-reality, test-reality, claim-diff, merge-gate
+  league/            Persistent store: match history + ELO standings (JSON)
+  broadcast/         SSE hub + scripted demo (video only)
+  ao/                AO client: daemon management, session fleet control
+  vcs/               GitHub client (PR, checks, reviews)
+  verdict/           Trust-audit data model + receipt hashing
+frontend/            Vanilla-TS + Vite UI (Landing / Arena / Audit / League)
+specs/               Challenge specs (PRD + acceptance tests) — the "maps"
 ```
 
-The action posts the verdict as a check run (pass/fail vs threshold) and a review comment with file:line evidence.
-
-## Challenge specs
-
-| Spec | Description |
-|---|---|
-| `rest-api-auth` | REST API with auth (login, register, JWT) |
-| `realtime-chat` | WebSocket chat with presence |
-| `cli-task-tracker` | Persistent CLI task tracker |
-
-Specs live in `specs/<id>/SPEC.md` — each is a PRD + acceptance tests.
-
-## Broadcast UI
-
-The live overlay renders two AO Kanban boards side-by-side, a scoreboard, and a referee evidence rail. It consumes the `/events` SSE stream from the hub.
+## Testing
 
 ```bash
-# Vite dev (with hot reload)
-cd frontend && npm run dev
-# → http://localhost:5173
-
-# Production build
-npm run build
-# → frontend/dist/ (static, embeddable)
+go test ./... -race -count=1   # includes a REAL match: worktrees, go test, referee
+cd frontend && npm run build   # tsc --noEmit + vite build
 ```
 
-Set `VITE_BROADCAST_URL` to point at a remote hub, or run with `VITE_MOCK=true` (default) for the deterministic scripted replay.
-
-## Roadmap
-
-- [ ] `behavior-preservation` check (differential harness)
-- [ ] Live AO fleet registration + worktree spawning (v0.2)
-- [ ] Agent passport export + ELO certification
-- [ ] Spec marketplace + community challenges
-- [ ] Broadcast server: SSE -> WebSocket for multi-client
+The match engine tests prove nothing is fake: `TestMatchHonestVsDishonest` applies the
+dishonest fixture and asserts the patch **actually lands** (the build breaks on the
+hallucinated symbol), the referee catches both criticals, and the honest fleet wins.
 
 ## Hackathon
 
-This project was built for **The Orchestra** — AO's first hackathon (Aug 12–13, 2026). The demo video shows the deterministic match: two fleets, one referee, live catch, scoreboard flip. The Kanban board IS the broadcast.
+Built for **The Orchestra** — AO's first hackathon (Aug 12–13, 2026). The demo video shows
+the deterministic match: two fleets, one referee, live catch, scoreboard flip. The Kanban
+board IS the broadcast. See [RESEARCH.md](RESEARCH.md) for the winning thesis and
+[DEMO.md](DEMO.md) for the shot list.
 
 ## License
 
