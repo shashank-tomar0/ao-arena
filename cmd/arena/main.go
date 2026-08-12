@@ -3,11 +3,13 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/shashank-tomar0/ao-arena/internal/arena"
+	"github.com/shashank-tomar0/ao-arena/internal/broadcast"
 	"github.com/shashank-tomar0/ao-arena/internal/referee"
 )
 
@@ -35,8 +37,8 @@ func usage() {
 
 Commands:
   referee <repo> <pr-ref>   Audit a pull request against reality
-  match <spec-id>            Run a head-to-head between fleets on a spec
-  league                     Show season standings`)
+  match [--demo] [--serve]  Run a head-to-head on a spec; --serve broadcasts
+  league                    Show season standings`)
 }
 
 func runReferee(ctx context.Context) {
@@ -63,14 +65,33 @@ func runReferee(ctx context.Context) {
 }
 
 func runMatch(ctx context.Context) {
+	fs := flag.NewFlagSet("match", flag.ExitOnError)
+	demo := fs.Bool("demo", false, "run the deterministic scripted demo match (no AO daemons needed)")
+	serve := fs.Bool("serve", false, "start the SSE broadcast server on :8091")
+	specID := fs.String("spec", "rest-api-auth", "spec id to run")
+	_ = fs.Parse(os.Args[2:])
+
+	if *serve {
+		go broadcast.StartSSE(8091)
+		fmt.Println("broadcast server: http://localhost:8091/events")
+		fmt.Println("open frontend:   http://localhost:5173 (vite dev)")
+	}
+
+	if *demo {
+		fmt.Println("match: demo race — honest vs dishonest fleet (deterministic)")
+		score := broadcast.ScriptedMatch(ctx, broadcast.NewHub(), *specID)
+		fmt.Print(broadcast.RenderFinale(score))
+		return
+	}
+
 	spec := &arena.Spec{
-		ID:      "rest-api-auth",
+		ID:      *specID,
 		Name:    "REST API with authentication",
-		RepoDir: "specs/rest-api-auth",
+		RepoDir: "specs/" + *specID,
 		Timeout: 10 * time.Minute,
 	}
 	fmt.Println("match:", spec.Name)
-	fmt.Println("NOTE: fleeet registration + live AO daemons land in the v0.2.0 milestone. Evidence also moves onto the spec with acceptance tests.")
+	fmt.Println("NOTE: live AO fleet registration + live verifier run land in the v0.2.0 milestone.")
 	r := arena.NewRunner(referee.NewEngine(nil), 10*time.Minute)
 	m, err := r.Run(ctx, spec, map[string]*arena.Fleet{})
 	if err != nil {

@@ -61,7 +61,7 @@ func NewEngine(client *http.Client) *Engine {
 	}
 	return &Engine{
 		Client:      client,
-		Checks:      []Check{NewSymbolRealityCheck(), NewClaimDiffCheck()},
+		Checks:      []Check{NewSymbolRealityCheck(), NewClaimDiffCheck(), NewTheaterCheck()},
 		MaxFindings: 50,
 	}
 }
