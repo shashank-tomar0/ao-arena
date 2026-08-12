@@ -1,0 +1,24 @@
+name: referee
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  referee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Audit PR with AO Arena Referee
+        uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          threshold: '70'
