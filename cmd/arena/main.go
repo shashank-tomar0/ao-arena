@@ -11,6 +11,7 @@ import (
 
 	"github.com/shashank-tomar0/ao-arena/internal/arena"
 	"github.com/shashank-tomar0/ao-arena/internal/broadcast"
+	"github.com/shashank-tomar0/ao-arena/internal/match"
 	"github.com/shashank-tomar0/ao-arena/internal/referee"
 )
 
@@ -95,22 +96,62 @@ func runMatch(ctx context.Context) {
 		return
 	}
 
-	spec := &arena.Spec{
-		ID:      *specID,
-		Name:    "REST API with authentication",
-		RepoDir: "specs/" + *specID,
-		Timeout: 10 * time.Minute,
+	runRealMatch(ctx, hub, *specID)
+}
+
+// runRealMatch runs a genuine head-to-head: two git worktrees at HEAD, the
+// dishonest fixture applied to Fleet A (theater test + hallucinated API),
+// the honest baseline to Fleet B, real `go test -cover` on both, and the
+// referee auditing both deliveries. The verdicts and scoreboard are real.
+func runRealMatch(ctx context.Context, hub *broadcast.Hub, specID string) {
+	repoRoot := os.Getenv("REPO_ROOT")
+	if repoRoot == "" {
+		repoRoot = "."
 	}
-	fmt.Println("match:", spec.Name)
-	fmt.Println("NOTE: live AO fleet registration + live verifier run land in the v0.2.0 milestone.")
-	r := arena.NewRunner(referee.NewEngine(nil), 10*time.Minute)
-	m, err := r.Run(ctx, spec, map[string]*arena.Fleet{})
+	specRel := "specs/" + specID
+
+	e := match.NewEngine(repoRoot, specRel, "example.com/rest-api-auth/auth")
+	defer e.Cleanup()
+
+	fmt.Println("match: honest vs dishonest delivery on", specID)
+	fmt.Println("  fleet A (dishonest): theater test + hallucinated API")
+	fmt.Println("  fleet B (honest):    real tests, real assertions")
+	fmt.Println("  referee: deterministic checks against reality (no LLM judge)")
+
+	m, err := e.Run(ctx, match.DishonestDiff, match.HonestDiff)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "match error:", err)
 		os.Exit(1)
 	}
-	fmt.Println("winner:", m.Winner)
-	fmt.Println("log:", m.Log)
+
+	printFleet("A", m.FleetA)
+	printFleet("B", m.FleetB)
+
+	fmt.Println()
+	switch m.Winner {
+	case "b":
+		fmt.Println("WINNER: Fleet B (honest) — the referee caught the theater + hallucination.")
+	case "a":
+		fmt.Println("WINNER: Fleet A (dishonest) — suspicious; investigate the referee config.")
+	default:
+		fmt.Println("DRAW — identical trust scores.")
+	}
+	fmt.Printf("match duration: %s\n", m.Duration.Round(time.Millisecond))
+}
+
+func printFleet(name string, fr match.FleetResult) {
+	fmt.Printf("\nfleet %s — tests_pass=%v coverage=%.1f%% trust=%0.1f/100 mergeable=%v\n",
+		name, fr.TestsPass, fr.Coverage, fr.TrustScore, fr.Verdict != nil && fr.Verdict.Mergeable)
+	if fr.Verdict == nil {
+		return
+	}
+	fmt.Println("  " + fr.Verdict.Summary)
+	for _, f := range fr.Verdict.Findings {
+		fmt.Printf("    [%s] %s: %s\n", f.Severity, f.Category, f.Message)
+		if f.EvidencePath != "" {
+			fmt.Printf("      evidence: %s\n", f.EvidencePath)
+		}
+	}
 }
 
 func runLiveMatch(ctx context.Context, hub *broadcast.Hub, specID string) {
