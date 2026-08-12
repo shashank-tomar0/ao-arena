@@ -71,6 +71,11 @@ func (h *Hub) BroadcastReferee(ev RefereeEvent) { h.Publish("referee", ev) }
 // BroadcastScore publishes the scoreboard.
 func (h *Hub) BroadcastScore(a, b float64) { h.Publish("score", [2]float64{a, b}) }
 
+// BroadcastStatus publishes the match lifecycle state (idle/running/complete).
+func (h *Hub) BroadcastStatus(status, detail string) {
+	h.Publish("status", map[string]string{"status": status, "detail": detail})
+}
+
 // Subscribe registers a subscriber channel.
 func (h *Hub) Subscribe() chan Event {
 	h.mu.Lock()
