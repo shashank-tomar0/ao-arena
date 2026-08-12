@@ -63,6 +63,9 @@ export function liveFeed(): Feed {
               cbs.score.forEach((cb) => cb(a, b));
             }
             break;
+          case 'status':
+            cbs.status.forEach((cb) => cb(msg.data));
+            break;
         }
       };
       // Clock derived from page load; real match duration shows via SSE after.

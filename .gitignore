@@ -25,3 +25,10 @@ running.json
 Thumbs.db
 .idea/
 .vscode/
+# Local arena data
+arena_data/
+bin/
+
+# Local tool state
+.agents/
+.freebuff/

@@ -31,7 +31,7 @@ export interface RefereeEvent {
 
 // Wire protocol for the broadcast server (SSE → WebSocket bridge).
 export interface BroadcastMessage {
-  kind: 'session' | 'referee' | 'score' | 'clock';
+  kind: 'session' | 'referee' | 'score' | 'clock' | 'status';
   data: unknown;
 }
 
