@@ -105,6 +105,37 @@ func (c *Client) Health() (bool, error) {
 	return resp.StatusCode == 200, nil
 }
 
+// Project is an AO project registered in a daemon.
+type Project struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
+// CreateProject registers a working directory as an AO project.
+func (c *Client) CreateProject(ctx context.Context, path string) (*Project, error) {
+	body, _ := json.Marshal(map[string]string{"path": path})
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, c.base+"/api/v1/projects", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("create project: %d %s", resp.StatusCode, string(b))
+	}
+	var p Project
+	if err := json.Unmarshal(b, &p); err != nil {
+		return nil, fmt.Errorf("create project decode: %w (%s)", err, string(b))
+	}
+	return &p, nil
+}
+
 // SpawnParams mirrors the AO spawn CLI.
 type SpawnParams struct {
 	ProjectID string `json:"project_id"`
