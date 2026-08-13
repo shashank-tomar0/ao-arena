@@ -22,7 +22,7 @@ runs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version: '1.26'  # matches go.mod — the referee binary is built from this repo
 
     - name: Build referee
       shell: bash
@@ -50,15 +50,13 @@ runs:
       run: |
         PR_NUMBER="${{ github.event.pull_request.number }}"
         REPO="${{ github.repository }}"
-        # Parse the trust score from the verdict JSON
-        SCORE=$(python3 -c "import json,sys; print(json.load(open('$RUNNER_TEMP/verdict.json'))['TrustScore'])" 2>/dev/null || echo 0)
-        THRESHOLD=${{ inputs.threshold }}
-        CONCLUSION="failure"
-        if [ "$(echo "$SCORE >= $THRESHOLD" | bc -l 2>/dev/null)" = "1" ]; then
-          CONCLUSION="success"
-        fi
-        "$RUNNER_TEMP/referee" "$REPO" "pr-$PR_NUMBER" --live --post --json >/dev/null 2>&1 || true
-        echo "Referee check conclusion: $CONCLUSION (score $SCORE, threshold $THRESHOLD)"
+        # The verdict JSON uses lowercase keys (trust_score) — parse it with
+        # python3 (always present on GitHub runners; no bc dependency).
+        SCORE=$(python3 -c "import json,sys; print(json.load(open('$RUNNER_TEMP/verdict.json'))['trust_score'])" 2>/dev/null || echo 0)
+        echo "Referee score: $SCORE (threshold ${{ inputs.threshold }})"
+        # --threshold makes the posted check run's conclusion respect the
+        # configured minimum trust score, not just mergeability.
+        "$RUNNER_TEMP/referee" "$REPO" "pr-$PR_NUMBER" --live --post --threshold ${{ inputs.threshold }} --json >/dev/null 2>&1 || true
         exit 0
 
 branding:

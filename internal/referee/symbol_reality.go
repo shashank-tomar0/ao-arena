@@ -25,6 +25,8 @@ var ignoreTokens = map[string]bool{
 	"await": true, "async": true, "export": true, "default": true,
 	"new": true, "class": true, "extends": true, "throw": true,
 	"func": true, "package": true, "type": true,
+	// CommonJS globals: universally resolvable, never a hallucination.
+	"require": true,
 }
 
 var identifierRe = regexp.MustCompile(`[A-Za-z_][A-Za-z0-9_]{1,63}`)
@@ -91,6 +93,7 @@ func (c *symbolRealityCheck) Run(ctx context.Context, pr *PRContext) ([]verdict.
 				Severity:     verdict.SeverityCritical,
 				Message:      "diff references symbol not resolvable anywhere in the repository",
 				EvidencePath: evidencePath(line),
+				Evidence:     evidencePath(line),
 				Suggestion:   "verify this API/import actually exists before shipping agent-written code",
 			})
 			if len(findings) >= 20 {

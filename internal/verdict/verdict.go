@@ -20,6 +20,7 @@ type Category string
 
 const (
 	CategorySymbolReality Category = "symbol-reality"
+	CategoryCompilerReality Category = "compiler-reality"
 	CategoryTestMutation  Category = "test-mutation"
 	CategoryClaimDiff     Category = "claim-vs-diff"
 	CategoryMergeGate     Category = "merge-gate"
@@ -31,6 +32,7 @@ type Finding struct {
 	Severity     Severity `json:"severity"`
 	Message      string   `json:"message"`
 	EvidencePath string   `json:"evidence_path,omitempty"` // file:line or symbol reference
+	Evidence     string   `json:"evidence,omitempty"`       // code/claim snippet — what the finding points at
 	Suggestion   string   `json:"suggestion,omitempty"`
 }
 

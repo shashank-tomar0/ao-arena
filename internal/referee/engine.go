@@ -43,6 +43,7 @@ type PRContext struct {
 	MutatedTestOutput string
 	ClaimStatements   []string
 	SymbolIndex       map[string][]string // symbol -> file:line
+	CompilerErrors    []CompilerError     // real toolchain failures from the build
 	Mergeable         *bool
 	ChecksStatus      map[string]string // check name -> conclusion
 }
@@ -63,7 +64,7 @@ func NewEngine(client *http.Client) *Engine {
 	}
 	return &Engine{
 		Client:      client,
-		Checks:      []Check{NewSymbolRealityCheck(), NewClaimDiffCheck(), NewTheaterCheck(), NewMergeGateCheck()},
+		Checks:      []Check{NewSymbolRealityCheck(), NewCompilerRealityCheck(), NewClaimDiffCheck(), NewTheaterCheck(), NewMergeGateCheck()},
 		MaxFindings: 50,
 	}
 }
@@ -88,6 +89,11 @@ func (e *Engine) Run(ctx context.Context, pr *PRContext) (*Result, error) {
 		if len(findings) >= e.MaxFindings {
 			break
 		}
+	}
+	// The wire contract is "findings is always an array" — a nil slice would
+	// marshal to JSON null and break every client that calls .map on it.
+	if findings == nil {
+		findings = []verdict.Finding{}
 	}
 
 	v := verdict.Verdict{
@@ -164,7 +170,7 @@ func Hash(v verdict.Verdict) string {
 	var sb strings.Builder
 	sb.WriteString(v.Repo + "|" + v.PRRef + "|" + v.Ref)
 	for _, f := range v.Findings {
-		sb.WriteString(fmt.Sprintf("|%s|%s|%s|%s", f.Category, f.Severity, f.EvidencePath, f.Message))
+		sb.WriteString(fmt.Sprintf("|%s|%s|%s|%s|%s", f.Category, f.Severity, f.EvidencePath, f.Evidence, f.Message))
 	}
 	sum := sha256.Sum256([]byte(sb.String()))
 	return fmt.Sprintf("%x", sum)

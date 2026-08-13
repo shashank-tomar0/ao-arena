@@ -1,8 +1,9 @@
 // Theater-tests check: agent PRs often ship tests that pass because they
 // assert nothing — `expect(true).toBe(true)`, empty it() blocks, t.Skip.
-// This check scans the diff for theater patterns AND compares the baseline
-// test run against a mutation run: if tests pass unchanged after assertions
-// are neutralized, the suite is theater.
+// This check scans the diff for theater patterns AND runs a mutation
+// differential: if tests pass unchanged after production code is broken by
+// real mutants, the suite cannot detect broken behavior — it is theater,
+// proven by execution.
 package referee
 
 import (
@@ -66,6 +67,7 @@ func (c *TheaterCheck) Run(ctx context.Context, pr *PRContext) ([]verdict.Findin
 					Severity:     verdict.SeverityCritical,
 					Message:      "theater test: assertion does not verify behavior (" + re.String() + ")",
 					EvidencePath: "diff line " + itoa(i+1) + ": " + strings.TrimSpace(rawLine),
+					Evidence:     strings.TrimSpace(rawLine),
 					Suggestion:   "replace assertion-free checks with assertions that fail when the code under test breaks",
 				})
 				break
@@ -73,8 +75,10 @@ func (c *TheaterCheck) Run(ctx context.Context, pr *PRContext) ([]verdict.Findin
 		}
 	}
 
-	// 2) Mutation differential: a suite that passes with and without real
-	// assertions proves nothing about the change.
+	// 2) Mutation differential: production code is mutated (error handling
+	// disabled, comparisons and boolean guards flipped) and the suite is
+	// re-run. A suite that still passes against known-broken code proves
+	// nothing — the mutant survived.
 	if pr.TestOutput != "" && pr.MutatedTestOutput != "" {
 		basePass := strings.Contains(strings.ToUpper(pr.TestOutput), "PASS") ||
 			strings.Contains(strings.ToLower(pr.TestOutput), "passed")
@@ -84,14 +88,24 @@ func (c *TheaterCheck) Run(ctx context.Context, pr *PRContext) ([]verdict.Findin
 			findings = append(findings, verdict.Finding{
 				Category:     theaterCheckName,
 				Severity:     verdict.SeverityCritical,
-				Message:      "tests still pass after assertions were mutated — the suite does not verify behavior",
+				Message:      "tests still pass after production code was mutated — the suite cannot detect broken behavior",
 				EvidencePath: "test-reality/mutation-differential",
-				Suggestion:   "write assertions that observe real output; run mutation testing to prove the suite can fail",
+				Evidence:     firstLine(pr.MutatedTestOutput),
+				Suggestion:   "write assertions that observe real output; a real suite must fail when the code under test breaks",
 			})
 		}
 	}
 
 	return findings, nil
+}
+
+// firstLine returns the first line of a string — the human verdict line of
+// a mutation-differential run (survivor name / kill confirmation).
+func firstLine(s string) string {
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return s[:i]
+	}
+	return s
 }
 
 func itoa(n int) string {

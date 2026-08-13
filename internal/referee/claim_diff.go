@@ -2,6 +2,7 @@ package referee
 
 import (
 	"context"
+	"regexp"
 	"strings"
 
 	"github.com/shashank-tomar0/ao-arena/internal/verdict"
@@ -33,6 +34,9 @@ var claimPatterns = []struct {
 	{"added logging", "log", "log("},
 	{"added metrics", "metric", "metric"},
 	{"added caching", "cach", "cache"},
+	{"added encryption", "encrypt", "encrypt"},
+	{"added history", "history", "histor"},
+	{"added moderation", "moderation", "moderat"},
 	{"refactored", "refactor", "func "},
 }
 
@@ -66,6 +70,7 @@ func (c *claimDiffCheck) Run(ctx context.Context, pr *PRContext) ([]verdict.Find
 					Severity:     verdict.SeverityCritical,
 					Message:      "PR summary claims \"" + p.claim + "\" but the diff contains no supporting evidence",
 					EvidencePath: "pr-summary",
+					Evidence:     stmt,
 					Suggestion:   "agent summary does not match shipped changes — verify before trusting the description",
 				})
 			}
@@ -78,9 +83,12 @@ func (c *claimDiffCheck) Run(ctx context.Context, pr *PRContext) ([]verdict.Find
 	return findings, nil
 }
 
-var claimKeywords = []string{
-	"add", "implement", "fix", "refactor", "support", "handle", "migrate",
-}
+// claimVerbRe matches the claim-carrying verb forms agents actually use in
+// PR summaries: "added pagination", "implemented auth", "fixed the timeout",
+// "supports retry". Plain keyword prefix matching ("add ") misses "added",
+// which is the single most common agent claim phrasing — word-boundary
+// matching catches all of them.
+var claimVerbRe = regexp.MustCompile(`\b(added|removed|implemented|implement|fixed|fixing|refactored|refactor|supports?|handles?|migrates?|improves?|adds?)\b`)
 
 func extractClaims(body string) []string {
 	var out []string
@@ -89,15 +97,7 @@ func extractClaims(body string) []string {
 		if t == "" {
 			continue
 		}
-		lower := strings.ToLower(t)
-		hit := false
-		for _, kw := range claimKeywords {
-			if strings.Contains(lower, kw+" ") || strings.HasPrefix(lower, kw+" ") {
-				hit = true
-				break
-			}
-		}
-		if hit {
+		if claimVerbRe.MatchString(strings.ToLower(t)) {
 			out = append(out, t)
 		}
 	}

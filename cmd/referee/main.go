@@ -29,6 +29,7 @@ func main() {
 	j := flag.Bool("json", false, "emit verdict as JSON")
 	live := flag.Bool("live", false, "fetch the PR from GitHub (needs GITHUB_TOKEN)")
 	post := flag.Bool("post", false, "post verdict as check run + review comment (needs --live and GITHUB_TOKEN)")
+	threshold := flag.Float64("threshold", 70, "minimum trust score (0-100) for the posted check run to pass")
 	flag.Parse()
 	args := flag.Args()
 	if len(args) < 2 {
@@ -99,12 +100,18 @@ func main() {
 		num, _ := strconv.Atoi(strings.TrimPrefix(prRef, "pr-"))
 		vc, err := vcs.NewClient(repo)
 		if err == nil {
-			conclusion := "neutral"
-			if !out.Verdict.Mergeable {
-				conclusion = "failure"
-			} else {
-				conclusion = "success"
-			}
+		// The check conclusion respects BOTH reality (mergeability) and the
+		// operator's configured threshold — an action threshold below 100
+		// cannot green-light a verdict the referee already blocked.
+		conclusion := "neutral"
+		switch {
+		case !out.Verdict.Mergeable:
+			conclusion = "failure"
+		case out.Verdict.TrustScore < *threshold:
+			conclusion = "failure"
+		default:
+			conclusion = "success"
+		}
 			_ = vc.PostCheckRun(context.Background(), num, "AO Arena Referee", conclusion,
 				out.Verdict.Summary, renderEvidence(out))
 			_ = vc.PostReviewComment(context.Background(), num, renderEvidence(out))
