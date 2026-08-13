@@ -514,6 +514,46 @@ img, svg { display: block; max-width: 100%; }
 .feature-cell p { color: var(--ink-1); font-size: var(--text-sm); max-width: 44ch; }
 .feature-cell .badge { margin-top: var(--space-4); }
 
+/* Proof — measured numbers, ruled like a stadium board */
+.proof-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-10);
+}
+@media (max-width: 1024px) { .proof-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .proof-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.proof-cell {
+  padding: var(--space-6);
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-0);
+  transition: background var(--dur-normal) var(--ease-out), border-color var(--dur-normal) var(--ease-out);
+}
+.proof-cell:hover {
+  background: var(--paper-1);
+  border-color: var(--accent-cyan);
+}
+.proof-num {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 5vw, 3.6rem);
+  line-height: 1;
+  color: var(--accent-amber);
+  letter-spacing: -0.02em;
+}
+.proof-label {
+  margin-top: var(--space-4);
+  font-weight: 600;
+  color: var(--ink-0);
+}
+.proof-sub {
+  margin-top: var(--space-1);
+  font-size: var(--text-2xs);
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+
 /* Specs — ledger rows */
 .spec-list {
   margin-top: var(--space-10);
@@ -1107,6 +1147,84 @@ img, svg { display: block; max-width: 100%; }
   will-change: transform;
 }
 .ov-ticker-track .ticker-item { font-size: var(--text-2xs); }
+
+/* ============================================================
+   PROOF LAYER — evidence drill-down, receipt proofs, trust ledger
+   ============================================================ */
+
+.evidence-detail {
+  margin: var(--space-2) 0;
+}
+.evidence-detail summary {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--accent-cyan);
+  user-select: none;
+}
+.evidence-detail summary:hover { text-decoration: underline; }
+.evidence-snippet {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  border: 1px solid var(--rule-strong);
+  border-left: 2px solid var(--accent-cyan);
+  background: var(--ink-arena);
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-1);
+  white-space: pre;
+}
+
+.proof-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+.proof-result {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: 6px;
+  border: 1px solid var(--rule-strong);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  word-break: break-word;
+}
+.proof-result.ok   { background: color-mix(in oklch, var(--ok) 8%, transparent); border-color: color-mix(in oklch, var(--ok) 35%, transparent); }
+.proof-result.danger { background: color-mix(in oklch, var(--danger) 8%, transparent); border-color: color-mix(in oklch, var(--danger) 35%, transparent); }
+.proof-result code { font-family: var(--font-mono); font-size: var(--text-xs); }
+
+.ledger-body { padding: var(--space-4); }
+.ledger-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--text-sm);
+}
+.ledger-row:last-child { border-bottom: none; }
+.ledger-row code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  word-break: break-all;
+  color: var(--ink-1);
+}
+
+.receipt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+@media (max-width: 900px) {
+  .receipt-grid { grid-template-columns: 1fr; }
+}
+.receipt-body { margin-top: var(--space-2); }
 
 /* ============================================================
    MOBILE — 320 / 375 / 414 / 768 hard floor

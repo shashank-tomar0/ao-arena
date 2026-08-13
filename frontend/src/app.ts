@@ -6,13 +6,14 @@
 
 import './styles.css';
 import { initReveal } from './motion';
-import { renderLanding } from './pages/landing';
+import { renderLanding, mountLanding } from './pages/landing';
 import { renderArena, mountArena } from './pages/arena';
 import { renderAudit, mountAudit } from './pages/audit';
 import { renderLeague, mountLeague } from './pages/league';
 import { renderOverlay, mountOverlay } from './pages/overlay';
+import { renderReceipt, mountReceipt } from './pages/receipt';
 
-export type View = 'landing' | 'arena' | 'audit' | 'league' | 'overlay';
+export type View = 'landing' | 'arena' | 'audit' | 'league' | 'overlay' | 'receipt';
 
 interface Page {
   render: () => string;
@@ -21,11 +22,13 @@ interface Page {
 }
 
 const pages: Record<View, Page> = {
-  landing: { render: () => renderLanding(navigate) },
+  landing: { render: () => renderLanding(navigate), mount: mountLanding },
   arena: { render: renderArena, mount: mountArena },
   audit: { render: renderAudit, mount: mountAudit },
   league: { render: renderLeague, mount: mountLeague },
   overlay: { render: renderOverlay, mount: mountOverlay, bare: true },
+  // receipt is parameterized by the hash — handled specially in navigate.
+  receipt: { render: () => '', mount: () => () => {} },
 };
 
 const app = document.getElementById('app')!;
@@ -53,7 +56,11 @@ export function navigate(view: View): void {
   cleanup = null;
   currentView = view;
 
-  const page = pages[view];
+  const receiptHash = view === 'receipt' ? location.hash.replace(/^#r\//, '') : '';
+  const page: Page =
+    view === 'receipt'
+      ? { render: () => renderReceipt(receiptHash), mount: () => mountReceipt(receiptHash) }
+      : pages[view];
   app.innerHTML = (page.bare ? '' : pillnav()) + page.render();
 
   // Wire navigation + active state.
@@ -73,13 +80,15 @@ export function navigate(view: View): void {
   });
   initReveal(app);
 
-  if (location.hash !== `#${view}`) {
+  // Receipt pages keep their #r/<hash> address; everything else normalizes.
+  if (view !== 'receipt' && location.hash !== `#${view}`) {
     history.pushState({ view }, '', view === 'landing' ? '#' : `#${view}`);
   }
 }
 
 function viewFromHash(): View {
   const h = location.hash.replace(/^#/, '');
+  if (h.startsWith('r/')) return 'receipt';
   return (['arena', 'audit', 'league', 'overlay'] as View[]).includes(h as View) ? (h as View) : 'landing';
 }
 

@@ -1,6 +1,7 @@
 // Landing — Marquee Hero macrostructure.
 // The hero is a live broadcast console; the ticker IS the broadcast.
 
+import { stats } from '../api';
 import type { View } from '../app';
 
 // Referee verdicts that animate the ticker (real outputs, framed as live feed).
@@ -9,8 +10,8 @@ const TICKER = [
   { t: 'hallucinated api · machenhance.Generate()', c: true },
   { t: 'fleet B merged clean · trust 100/100', c: false },
   { t: 'ghost claim refuted · file:line evidence', c: true },
-  { t: 'mutation differential · suite still passes', c: true },
-  { t: 'symbol graph verified · 0 unresolved refs', c: false },
+  { t: 'mutation differential · suite survives broken code', c: true },
+  { t: 'compiler backed · undefined symbol at auth_test.go:16', c: true },
 ];
 
 function tickerItems(): string {
@@ -23,7 +24,7 @@ function tickerItems(): string {
 
 export function renderLanding(navigate: (v: View) => void): string {
   return `
-    <div class="landing">
+    <div class="landing" id="landing">
       <!-- HERO: broadcast console -->
       <header class="hero">
         <div class="container">
@@ -48,7 +49,7 @@ export function renderLanding(navigate: (v: View) => void): string {
                 <span>·</span>
                 <span>spec rest-api-auth</span>
                 <span>·</span>
-                <span>4 checks · 0 LLM judges</span>
+                <span>5 checks · 0 LLM judges</span>
               </div>
             </div>
 
@@ -74,8 +75,8 @@ export function renderLanding(navigate: (v: View) => void): string {
                 </div>
               </div>
               <div class="console-feed">
-                <div class="console-line"><span class="ln">01</span><span class="ev-crit">[critical] test-reality · theater test: assertion survives mutation</span></div>
-                <div class="console-line"><span class="ln">02</span><span class="ev-crit">[critical] symbol-reality · machenhance.Generate() resolves nowhere</span></div>
+                <div class="console-line"><span class="ln">01</span><span class="ev-crit">[critical] test-reality · suite survives production-code mutation</span></div>
+                <div class="console-line"><span class="ln">02</span><span class="ev-crit">[critical] compiler-reality · undefined: machenhance at auth_test.go:16</span></div>
                 <div class="console-line"><span class="ln">03</span><span class="ev-ok">[clean] merge-gate · fleet B mergeable, CI green</span></div>
                 <div class="console-line"><span class="ln">04</span><span class="ev-ok">[receipt] sha256:b6145371…78eaec · tamper-evident</span></div>
               </div>
@@ -99,10 +100,11 @@ export function renderLanding(navigate: (v: View) => void): string {
           </div>
           <div class="feature-grid">
             ${[
-              { code: 'CHK/01', title: 'Symbol Reality', desc: 'Catches hallucinated imports and API calls that resolve to nothing. Every reference verified against the actual symbol graph.', tag: 'critical', tagCls: 'badge-danger' },
-              { code: 'CHK/02', title: 'Test Reality', desc: 'Mutation-differential proof: if tests pass after assertions are neutralized, the suite is theater. expect(true).toBe(true) dies here.', tag: 'critical', tagCls: 'badge-danger' },
+              { code: 'CHK/01', title: 'Symbol Reality', desc: 'Catches hallucinated imports and API calls that resolve to nothing. Static scan plus the Go toolchain itself — undefined symbols and missing packages reported with the compiler\'s own file:line evidence.', tag: 'critical', tagCls: 'badge-danger' },
+              { code: 'CHK/02', title: 'Test Reality', desc: 'Mutation-differential proof: production code is broken by real mutants, and a suite that still passes cannot detect broken behavior. expect(true).toBe(true) dies here.', tag: 'critical', tagCls: 'badge-danger' },
               { code: 'CHK/03', title: 'Claim vs Diff', desc: 'Agent PR summaries describe work the diff doesn\'t contain. Ghost claims flagged with file:line evidence.', tag: 'critical', tagCls: 'badge-danger' },
               { code: 'CHK/04', title: 'Merge Gate', desc: 'CI status, conflicts, coverage sanity. An agent PR must be merge-ready, not just green.', tag: 'warning', tagCls: 'badge-amber' },
+              { code: 'CHK/05', title: 'Receipt', desc: 'Every verdict carries a tamper-evident SHA-256 receipt over the canonical findings. Edit a verdict, break the receipt.', tag: 'info', tagCls: 'badge-cyan' },
             ].map((f, i) => `
               <div class="feature-cell reveal" style="--reveal-delay: ${i * 70}ms;">
                 <div class="feature-code">${f.code}</div>
@@ -111,6 +113,39 @@ export function renderLanding(navigate: (v: View) => void): string {
                 <span class="badge ${f.tagCls}">${f.tag}</span>
               </div>
             `).join('')}
+          </div>
+        </div>
+      </section>
+
+      <!-- PROOF: measured numbers, computed live -->
+      <section class="section" style="border-top: 1px solid var(--rule-strong);">
+        <div class="container">
+          <div class="section-head reveal">
+            <div class="kicker">Measured, not marketed</div>
+            <h2 class="display-1">The referee is a pure function of reality</h2>
+            <p class="body text-muted">Every number on this page is computed by actually running the referee — the same code that officiates live matches in the arena. Nothing here is invented.</p>
+          </div>
+          <div class="proof-grid">
+            <div class="proof-cell reveal">
+              <div class="proof-num" id="stat-benchmark">—</div>
+              <div class="proof-label">crafted failure modes caught</div>
+              <div class="proof-sub">theater tests · hallucinated APIs · ghost claims</div>
+            </div>
+            <div class="proof-cell reveal" style="--reveal-delay: 70ms;">
+              <div class="proof-num" id="stat-deterministic">—</div>
+              <div class="proof-label">deterministic verdicts</div>
+              <div class="proof-sub">same diff → same receipt hash, verified on every load</div>
+            </div>
+            <div class="proof-cell reveal" style="--reveal-delay: 140ms;">
+              <div class="proof-num" id="stat-matches">—</div>
+              <div class="proof-label">matches officiated live</div>
+              <div class="proof-sub">real worktrees · real go test · real verdicts</div>
+            </div>
+            <div class="proof-cell reveal" style="--reveal-delay: 210ms;">
+              <div class="proof-num" id="stat-audits">—</div>
+              <div class="proof-label">diffs audited</div>
+              <div class="proof-sub">every verdict carries a tamper-evident receipt</div>
+            </div>
           </div>
         </div>
       </section>
@@ -184,4 +219,22 @@ export function renderLanding(navigate: (v: View) => void): string {
       </footer>
     </div>
   `;
+}
+
+// Fill the proof cells with the arena's real, live-computed numbers.
+// Placeholder "—" until the stats arrive; the referee computes them on demand.
+export function mountLanding(): () => void {
+  stats()
+    .then((s) => {
+      const bench = document.getElementById('stat-benchmark');
+      const det = document.getElementById('stat-deterministic');
+      const matches = document.getElementById('stat-matches');
+      const audits = document.getElementById('stat-audits');
+      if (bench) bench.textContent = `${s.benchmark.caught}/${s.benchmark.total}`;
+      if (det) det.textContent = s.benchmark.deterministic ? '✓' : '—';
+      if (matches) matches.textContent = String(s.matches_officiated);
+      if (audits) audits.textContent = String(s.audits_run);
+    })
+    .catch(() => {}); // proof cells keep their "—" if the server is unreachable
+  return () => {};
 }

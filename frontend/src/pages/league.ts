@@ -2,7 +2,7 @@
 // the server's JSON-backed league store — every real match and audit is
 // recorded and survives restarts.
 
-import { history, league, type HistoryRecord, type Standing } from '../api';
+import { history, league, ledger, type ChainStatus, type HistoryRecord, type Standing } from '../api';
 
 export function renderLeague(): string {
   return `
@@ -48,6 +48,16 @@ export function renderLeague(): string {
             <ul class="history-list" id="history-list">
               <li class="history-empty">No activity yet.</li>
             </ul>
+          </section>
+
+          <section class="panel reveal" style="--reveal-delay: 160ms; grid-column: 1 / -1;">
+            <div class="panel-head">
+              <h3>Trust ledger · tamper-evident season record</h3>
+              <span class="badge badge-neutral" id="ledger-badge">checking…</span>
+            </div>
+            <div class="ledger-body" id="ledger-body">
+              <p class="body-sm text-muted">Every record is chained to the one before it. Rewrite any past result — score, summary, verdict, receipt — and every seal after it breaks.</p>
+            </div>
           </section>
         </div>
       </main>
@@ -101,6 +111,30 @@ function winnerBadge(kind: string, winner: string): string {
       : '<span class="badge badge-neutral">draw</span>';
 }
 
+function renderLedger(st: ChainStatus) {
+  const badge = document.getElementById('ledger-badge')!;
+  const body = document.getElementById('ledger-body')!;
+  if (st.length === 0) {
+    badge.className = 'badge badge-neutral';
+    badge.textContent = 'empty season';
+    body.innerHTML = `<p class="body-sm text-muted">No records yet — the first match seeds the chain.</p>`;
+    return;
+  }
+  badge.className = st.verified ? 'badge badge-ok' : 'badge badge-danger';
+  badge.textContent = st.verified ? `verified · ${st.length} seals` : `tampered · breaks at #${(st.broken_at ?? 0) + 1}`;
+  body.innerHTML = `
+    <div class="ledger-row">
+      <span class="field-label">status</span>
+      <span>${st.verified ? 'VERIFIED ✓ — every seal recomputes to its stored hash' : 'TAMPERED ✗ — chain breaks at record ' + ((st.broken_at ?? 0) + 1)}</span>
+    </div>
+    <div class="ledger-row">
+      <span class="field-label">genesis</span>
+      <code>${esc(st.genesis)}</code>
+    </div>
+    <p class="body-sm text-muted" style="margin-top: var(--space-3);">The genesis hash is the season's published anchor. Open the CLI and run <code>ao-arena ledger verify</code> to confirm from the terminal.</p>
+  `;
+}
+
 function renderHistory(records: HistoryRecord[]) {
   const list = document.getElementById('history-list')!;
   if (!records.length) {
@@ -126,9 +160,10 @@ function renderHistory(records: HistoryRecord[]) {
 export function mountLeague(): () => void {
   async function load() {
     try {
-      const [l, h] = await Promise.all([league(), history()]);
+      const [l, h, lg] = await Promise.all([league(), history(), ledger()]);
       renderStandings(l.standings, l.matches);
       renderHistory(h.history);
+      renderLedger(lg.chain);
     } catch {
       const body = document.getElementById('standings-body')!;
       body.innerHTML = `<tr><td colspan="7" class="table-empty">Could not reach the league store.</td></tr>`;
