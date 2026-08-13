@@ -1,0 +1,11 @@
+{
+  "name": "realtime-chat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AO Arena challenge: a zero-dependency WebSocket chat server with presence and graceful shutdown.",
+  "scripts": {
+    "test": "node --test",
+    "cover": "node --test --experimental-test-coverage"
+  }
+}

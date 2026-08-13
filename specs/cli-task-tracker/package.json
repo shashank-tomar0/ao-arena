@@ -1,0 +1,11 @@
+{
+  "name": "cli-task-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AO Arena challenge: a zero-dependency CLI task tracker with persistent storage.",
+  "scripts": {
+    "test": "node --test --test-force-exit",
+    "cover": "node --test --test-force-exit --experimental-test-coverage"
+  }
+}

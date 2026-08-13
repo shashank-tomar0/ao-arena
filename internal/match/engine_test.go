@@ -24,20 +24,23 @@ func TestRealMatch(t *testing.T) {
 		t.Fatalf("spec path %s: %v", specPath, err)
 	}
 
-	// specPath is the spec dir; repo is one level up.
-	repoPath := filepath.Dir(specPath)
+	// specPath is the spec dir; the repo root is two levels up (contains specs/).
+	repoPath := filepath.Dir(filepath.Dir(specPath))
 
 	// Remove leftover worktrees from previous runs (git registers them on disk).
 	os.RemoveAll(filepath.Join(os.TempDir(), "ao-arena-matches"))
 	_ = exec.Command("git", "worktree", "prune").Run()
 
-	e := NewEngine(repoPath, "specs/rest-api-auth", "example.com/rest-api-auth/auth")
+	e, err := NewEngine(repoPath, "rest-api-auth")
+	if err != nil {
+		t.Fatalf("engine: %v", err)
+	}
 	t.Cleanup(e.Cleanup)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	start := time.Now()
-	m, err := e.Run(ctx, "", "")
+	m, err := e.Run(ctx, "", "", "", "")
 	if err != nil {
 		t.Fatalf("match run: %v", err)
 	}
@@ -82,18 +85,22 @@ func TestMatchHonestVsDishonest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve spec: %v", err)
 	}
-	repoPath := filepath.Dir(specPath)
+	// The engine expects the repo root that contains specs/.
+	repoPath := filepath.Dir(filepath.Dir(specPath))
 
 	// Remove leftover worktrees from previous runs (git registers them on disk).
 	os.RemoveAll(filepath.Join(os.TempDir(), "ao-arena-matches"))
 	_ = exec.Command("git", "worktree", "prune").Run()
 
-	e := NewEngine(repoPath, "specs/rest-api-auth", "example.com/rest-api-auth/auth")
+	e, err := NewEngine(repoPath, "rest-api-auth")
+	if err != nil {
+		t.Fatalf("engine: %v", err)
+	}
 	t.Cleanup(e.Cleanup)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	m, err := e.Run(ctx, "", DishonestDiff)
+	m, err := e.Run(ctx, "", DishonestDiff, HonestBody, DishonestBody)
 	if err != nil {
 		t.Fatalf("match run: %v", err)
 	}
@@ -114,12 +121,16 @@ func TestMatchHonestVsDishonest(t *testing.T) {
 	}
 	hasTheater := false
 	hasSymbol := false
+	hasGhost := false
 	for _, f := range m.FleetB.Verdict.Findings {
 		if f.Category == "test-reality" && f.Severity == verdict.SeverityCritical {
 			hasTheater = true
 		}
 		if f.Category == verdict.CategorySymbolReality && f.Severity == verdict.SeverityCritical {
 			hasSymbol = true
+		}
+		if f.Category == verdict.CategoryClaimDiff && f.Severity == verdict.SeverityCritical {
+			hasGhost = true
 		}
 	}
 	if !hasTheater {
@@ -128,9 +139,23 @@ func TestMatchHonestVsDishonest(t *testing.T) {
 	if !hasSymbol {
 		t.Errorf("expected a critical symbol-reality finding on fleet B")
 	}
+	if !hasGhost {
+		t.Errorf("expected a critical claim-vs-diff finding on fleet B (ghost claims in the dishonest body)")
+	}
 
 	// 3) The honest fleet wins.
 	if m.Winner != "a" {
 		t.Errorf("expected fleet A to win, got %s", m.Winner)
+	}
+
+	// 4) Every finding carries drill-down evidence (snippet) — the receipt
+	//    covers it, so tampering with evidence breaks the hash.
+	for _, f := range m.FleetB.Verdict.Findings {
+		if f.Evidence == "" {
+			t.Errorf("finding %s lacks evidence snippet: %s", f.Category, f.Message)
+		}
+	}
+	if m.FleetB.Verdict.ReceiptHash == "" {
+		t.Errorf("verdict lacks receipt hash")
 	}
 }
