@@ -1,53 +1,55 @@
 /*
- * AO Arena — Design tokens (Hallmark-tuned brand system)
- * Preserved: Space Grotesk + JetBrains Mono, cyan/amber brand anchors, 8px fluid scale.
- * Introduced: OKLCH discipline, hairline rule language, motion tokens, elevation system.
+ * AO Arena — Design tokens (Verdict Theatre system)
+ * The identity: a live broadcast of a high-stakes match inside a courtroom —
+ * void ink deck, signal cyan (trust), verdict amber (scores/wins),
+ * caught red (critical), cheat magenta (dishonest fleet). Syne display +
+ * JetBrains Mono. Sharp instrument bezels, scanline + seal + breach motion.
  */
 
 :root {
-  /* === PAPER / INK — deep ink arena (OKLCH, blue-cast) === */
-  --paper-0: oklch(0.13 0.018 255);   /* page */
-  --paper-1: oklch(0.165 0.022 255);  /* raised panel */
-  --paper-2: oklch(0.20 0.026 255);   /* card / well */
-  --paper-3: oklch(0.245 0.03 255);   /* hover well */
+  /* === VOID INK — the arena deck (OKLCH, blue-violet cast) === */
+  --paper-0: oklch(0.115 0.02 285);   /* page — the void */
+  --paper-1: oklch(0.15 0.025 285);   /* raised plate */
+  --paper-2: oklch(0.185 0.03 285);   /* instrument well */
+  --paper-3: oklch(0.23 0.035 285);   /* hover well */
 
-  --ink-0: oklch(0.95 0.008 255);     /* primary text */
-  --ink-1: oklch(0.68 0.025 255);     /* secondary text */
-  --ink-2: oklch(0.50 0.03 255);      /* tertiary text */
-  --ink-3: oklch(0.38 0.03 255);      /* disabled / placeholder */
+  --ink-0: oklch(0.95 0.012 285);     /* primary text */
+  --ink-1: oklch(0.70 0.03 285);      /* secondary text */
+  --ink-2: oklch(0.52 0.035 285);     /* tertiary text */
+  --ink-3: oklch(0.40 0.03 285);      /* disabled / placeholder */
 
   /* === HAIRLINES — the rule language === */
-  --rule: oklch(0.29 0.035 255);
-  --rule-strong: oklch(0.36 0.045 255);
-  --rule-faint: oklch(0.22 0.03 255);
+  --rule: oklch(0.28 0.04 285);
+  --rule-strong: oklch(0.36 0.05 285);
+  --rule-faint: oklch(0.21 0.035 285);
 
-  /* === ACCENT ANCHORS (brand) === */
-  --accent-cyan: oklch(0.80 0.155 178);        /* trust / primary */
-  --accent-cyan-deep: oklch(0.70 0.14 178);    /* hover */
-  --accent-amber: oklch(0.84 0.16 88);         /* energy / vs moment */
-  --accent-amber-deep: oklch(0.74 0.15 88);    /* hover */
+  /* === SIGNAL ANCHORS === */
+  --accent-cyan: oklch(0.82 0.14 205);        /* signal cyan — trust / primary */
+  --accent-cyan-deep: oklch(0.72 0.13 205);   /* hover */
+  --accent-amber: oklch(0.87 0.16 85);        /* verdict amber — scores / wins */
+  --accent-amber-deep: oklch(0.78 0.15 85);   /* hover */
 
   /* === FLEET SIGNALS === */
-  --fleet-a: oklch(0.64 0.19 262);             /* challenger — electric blue */
-  --fleet-b: oklch(0.64 0.23 302);             /* defender — electric violet */
+  --fleet-a: oklch(0.72 0.22 335);            /* cheat magenta — dishonest */
+  --fleet-b: oklch(0.72 0.15 205);            /* trust cyan — honest */
 
   /* === SEMANTIC === */
-  --danger: oklch(0.70 0.19 27);
-  --danger-deep: oklch(0.60 0.19 27);
-  --ok: oklch(0.80 0.155 178);
-  --warn: oklch(0.84 0.16 88);
+  --danger: oklch(0.68 0.21 25);              /* caught red */
+  --danger-deep: oklch(0.58 0.2 25);
+  --ok: oklch(0.82 0.14 205);                 /* trust cyan = clean */
+  --warn: oklch(0.87 0.16 85);                /* verdict amber */
 
   /* === GLOW — sparing, never blur-soup === */
-  --glow-cyan: 0 0 0 1px oklch(0.80 0.155 178 / 0.35), 0 0 28px oklch(0.80 0.155 178 / 0.12);
-  --glow-amber: 0 0 0 1px oklch(0.84 0.16 88 / 0.35), 0 0 28px oklch(0.84 0.16 88 / 0.12);
-  --glow-danger: 0 0 0 1px oklch(0.70 0.19 27 / 0.4), 0 0 24px oklch(0.70 0.19 27 / 0.15);
+  --glow-cyan: 0 0 0 1px oklch(0.82 0.14 205 / 0.35), 0 0 30px oklch(0.82 0.14 205 / 0.14);
+  --glow-amber: 0 0 0 1px oklch(0.87 0.16 85 / 0.35), 0 0 30px oklch(0.87 0.16 85 / 0.14);
+  --glow-danger: 0 0 0 1px oklch(0.68 0.21 25 / 0.45), 0 0 26px oklch(0.68 0.21 25 / 0.2);
 
   /* === TYPOGRAPHY === */
-  --font-display: 'Space Grotesk', ui-monospace, monospace;
+  --font-display: 'Syne', 'Space Grotesk', ui-monospace, monospace;
   --font-ui: 'JetBrains Mono', ui-monospace, monospace;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  /* Fluid type scale */
+  /* Fluid type scale — score numerals get their own monster sizes below */
   --text-2xs: clamp(0.625rem, 0.58rem + 0.2vw, 0.7rem);
   --text-xs: clamp(0.7rem, 0.65rem + 0.25vw, 0.8rem);
   --text-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.9rem);
@@ -75,7 +77,7 @@
   /* === RADIUS — sharp, machine-cut === */
   --radius-xs: 2px;
   --radius-sm: 4px;
-  --radius-md: 8px;
+  --radius-md: 6px;
   --radius-full: 999px;
 
   /* === MOTION === */
@@ -83,6 +85,7 @@
   --dur-normal: 220ms;
   --dur-slow: 420ms;
   --dur-glacial: 900ms;
+  --dur-breach: 900ms;   /* the CAUGHT alarm */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.4, 0, 0.7, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -96,21 +99,21 @@
 /* Light mode — reserved, not shipped (the arena is dark) */
 @media (prefers-color-scheme: light) {
   :root[data-theme='light'] {
-    --paper-0: oklch(0.98 0.004 255);
-    --paper-1: oklch(0.96 0.006 255);
-    --paper-2: oklch(0.94 0.008 255);
-    --paper-3: oklch(0.90 0.01 255);
-    --ink-0: oklch(0.16 0.02 255);
-    --ink-1: oklch(0.36 0.02 255);
-    --ink-2: oklch(0.50 0.02 255);
-    --ink-3: oklch(0.60 0.02 255);
-    --rule: oklch(0.85 0.015 255);
-    --rule-strong: oklch(0.75 0.02 255);
-    --rule-faint: oklch(0.90 0.01 255);
-    --accent-cyan: oklch(0.55 0.15 178);
-    --accent-cyan-deep: oklch(0.50 0.15 178);
-    --accent-amber: oklch(0.62 0.16 88);
-    --accent-amber-deep: oklch(0.57 0.16 88);
+    --paper-0: oklch(0.97 0.006 285);
+    --paper-1: oklch(0.95 0.008 285);
+    --paper-2: oklch(0.92 0.01 285);
+    --paper-3: oklch(0.88 0.012 285);
+    --ink-0: oklch(0.15 0.03 285);
+    --ink-1: oklch(0.34 0.03 285);
+    --ink-2: oklch(0.48 0.03 285);
+    --ink-3: oklch(0.58 0.03 285);
+    --rule: oklch(0.84 0.02 285);
+    --rule-strong: oklch(0.74 0.03 285);
+    --rule-faint: oklch(0.90 0.015 285);
+    --accent-cyan: oklch(0.52 0.14 205);
+    --accent-cyan-deep: oklch(0.47 0.14 205);
+    --accent-amber: oklch(0.60 0.16 85);
+    --accent-amber-deep: oklch(0.55 0.16 85);
   }
 }
 
@@ -121,6 +124,7 @@
     --dur-normal: 1ms;
     --dur-slow: 1ms;
     --dur-glacial: 1ms;
+    --dur-breach: 1ms;
   }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

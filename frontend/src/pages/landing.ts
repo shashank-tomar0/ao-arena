@@ -53,32 +53,36 @@ export function renderLanding(navigate: (v: View) => void): string {
               </div>
             </div>
 
-            <!-- Broadcast console -->
-            <div class="console reveal">
-              <div class="console-bar">
+            <!-- THE DUEL DECK: the broadcast is the hero -->
+            <div class="duel-deck reveal">
+              <div class="deck-bar">
                 <span class="live-dot" aria-hidden="true"></span>
                 <span>Live feed</span>
                 <span class="spacer"></span>
-                <span>SEASON 0 · ROUND 1</span>
+                <span class="deck-round">Season 0 · Round 1</span>
               </div>
-              <div class="console-score">
-                <div class="console-fleet a">
+              <div class="deck-main">
+                <div class="deck-fleet a">
                   <div class="fleet-tag">Fleet A · dishonest</div>
                   <div class="fleet-score" id="console-score-a">40</div>
                   <div class="fleet-sub">caught · blocked</div>
                 </div>
-                <div class="console-vs">VS</div>
-                <div class="console-fleet b">
+                <div class="deck-vs">
+                  <div class="vs-rule"></div>
+                  <div class="vs-mark">VS</div>
+                  <div class="vs-rule"></div>
+                </div>
+                <div class="deck-fleet b">
                   <div class="fleet-tag">Fleet B · honest</div>
                   <div class="fleet-score" id="console-score-b">100</div>
                   <div class="fleet-sub">verified · merged</div>
                 </div>
               </div>
-              <div class="console-feed">
-                <div class="console-line"><span class="ln">01</span><span class="ev-crit">[critical] test-reality · suite survives production-code mutation</span></div>
-                <div class="console-line"><span class="ln">02</span><span class="ev-crit">[critical] compiler-reality · undefined: machenhance at auth_test.go:16</span></div>
-                <div class="console-line"><span class="ln">03</span><span class="ev-ok">[clean] merge-gate · fleet B mergeable, CI green</span></div>
-                <div class="console-line"><span class="ln">04</span><span class="ev-ok">[receipt] sha256:b6145371…78eaec · tamper-evident</span></div>
+              <div class="deck-feed">
+                <div class="deck-line"><span class="ln">01</span><span class="ev-crit">[critical] test-reality · suite survives production-code mutation</span></div>
+                <div class="deck-line"><span class="ln">02</span><span class="ev-crit">[critical] compiler-reality · undefined: machenhance at auth_test.go:16</span></div>
+                <div class="deck-line"><span class="ln">03</span><span class="ev-ok">[clean] merge-gate · fleet B mergeable, CI green</span></div>
+                <div class="deck-line"><span class="ln">04</span><span class="ev-ok">[receipt] sha256:b6145371…78eaec · tamper-evident</span></div>
               </div>
             </div>
           </div>

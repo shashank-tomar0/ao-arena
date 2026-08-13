@@ -172,12 +172,34 @@ function renderScores() {
   const b = document.getElementById('score-b-pill')!;
   countUp(a, Math.round(currentScore[0]));
   countUp(b, Math.round(currentScore[1]));
-  // Brief pulse on the scoreboard when the authoritative score arrives.
+  // Digit flip on the scoreboard when the authoritative score arrives.
   [a, b].forEach((el) => {
-    el.classList.remove('score-pulse');
+    el.classList.remove('flip-num');
     void el.offsetWidth;
-    el.classList.add('score-pulse');
+    el.classList.add('flip-num');
   });
+}
+
+// breachAlarm triggers the CAUGHT state on the dishonest fleet's board and
+// stamps the newest evidence item — the red scan sweep is the signature
+// moment when the referee lands a critical finding on Fleet A.
+let breachTimer: number | null = null;
+function breachAlarm() {
+  const board = document.getElementById('board-a') as HTMLElement | null;
+  if (board) {
+    board.classList.remove('breached');
+    void board.offsetWidth;
+    board.classList.add('breached');
+  }
+  const items = document.querySelectorAll<HTMLElement>('#evidence-list .evidence-item');
+  const last = items[items.length - 1];
+  if (last) {
+    last.classList.remove('stamped');
+    void last.offsetWidth;
+    last.classList.add('stamped');
+  }
+  if (breachTimer !== null) window.clearTimeout(breachTimer);
+  breachTimer = window.setTimeout(() => board?.classList.remove('breached'), 1000);
 }
 
 function renderStatus(status: any) {
@@ -231,6 +253,10 @@ function dispatch(kind: string, data: any) {
     case 'referee':
       evidence.push(data as RefereeEvent);
       renderEvidence();
+      // The referee caught the dishonest fleet — sound the alarm.
+      if ((data as RefereeEvent).severity === 'critical' && (data as RefereeEvent).fleet === 'a') {
+        breachAlarm();
+      }
       break;
     case 'score':
       currentScore = [data[0] as number, data[1] as number];
