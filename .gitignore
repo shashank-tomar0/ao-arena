@@ -32,3 +32,6 @@ bin/
 # Local tool state
 .agents/
 .freebuff/
+
+# Go temp build dir (used when the system temp drive is constrained)
+.gotmp/

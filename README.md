@@ -27,9 +27,10 @@ The web app (Go server + vanilla-TS frontend, one binary) ships four surfaces:
 | Surface | What it does |
 |---|---|
 | **Landing** | The pitch: verification-as-officiating, deterministic checks, specs. |
-| **Arena** | Live head-to-head: two AO Kanban boards, referee evidence rail, scoreboard. "Run Match" runs a **real** match — real git worktrees, real `go test -cover`, real referee verdicts streamed over SSE. |
-| **Audit** | Referee-as-a-service: paste any PR diff, get an evidence-grade verdict (score ring, findings, receipt hash). |
-| **League** | Persistent season: ELO standings + activity log, stored as JSON on disk (`arena_data/league.json`). |
+| **Arena** | Live head-to-head: two Kanban boards, referee evidence rail, scoreboard. "Run Match" runs a **real** match — real git worktrees, real acceptance tests (`go test` / `node --test`), real referee verdicts streamed over SSE, then **replay** of the recorded timeline. |
+| **Audit** | Referee-as-a-service: paste any PR diff, get an evidence-grade verdict (score ring, findings with clickable evidence, receipt hash) — plus the three proofs: **verify receipt**, **tamper test** (edit a finding, watch the receipt break), **determinism ×5** (same diff → identical receipts). |
+| **League** | Persistent season: real ELO standings (expected-score math) + activity log + the **trust ledger** — every record chained to the one before it, tamper-evident and verifiable. |
+| **Receipt** | `/#r/<receipt>` — a shareable, re-verifiable verdict page for any recorded audit or match. |
 
 The standalone `referee` binary + GitHub Action gate any agent PR in any repo.
 
@@ -40,11 +41,12 @@ Deterministic verification, not LLM-as-judge:
 | Check | What it catches | Evidence output |
 |---|---|---|
 | **Symbol reality** | Hallucinated imports/calls | file:line of each unresolved symbol |
-| **Test reality** | Theater tests (`expect(true).toBe(true)`, `if true {}`) + mutation-differential proof | diff line + mutation proof |
-| **Claim vs. diff** | Ghost claims in PR summaries | claimed → verified/refuted per statement |
+| **Compiler reality** | The toolchain itself rejects the delivery (undefined symbols, missing packages) | the compiler's own file:line error |
+| **Test reality** | Theater tests (`expect(true).toBe(true)`, `if true {}`) + mutation-differential proof | diff line + mutation proof (surviving mutant) |
+| **Claim vs. diff** | Ghost claims in PR summaries | the claimed statement vs. the diff it never shipped |
 | **Merge gate** | CI status, conflicts, coverage sanity | check name + conclusion |
 
-Every verdict carries a **tamper-evident receipt hash** over the canonical findings.
+Every verdict carries a **tamper-evident receipt hash** over the canonical findings — and every recorded verdict is sealed into the **trust ledger**: each record's hash chains to the one before it, so rewriting any past result breaks every seal after it. The season's genesis hash is the published anchor (`ao-arena ledger verify`).
 
 ## Getting started
 
@@ -65,8 +67,8 @@ The server serves the web app, the REST API, and the SSE broadcast stream on one
 | Env var | Default | Purpose |
 |---|---|---|
 | `PORT` | `8080` | HTTP port |
-| `SPEC_PATH` | `specs/rest-api-auth` | Spec used for real matches |
-| `ARENA_STORE` | `arena_data/league.json` | Persistent league/history store |
+| `SPEC_ID` | `rest-api-auth` | Spec used for real matches (`realtime-chat` runs `node --test`) |
+| `ARENA_STORE` | `arena_data/league.json` | Persistent league/trust-ledger store |
 | `REPO_ROOT` | `.` | Git repo root containing `specs/` |
 
 ### Frontend dev (hot reload)
@@ -86,14 +88,22 @@ To rebuild the embedded UI after frontend changes:
 ### CLI
 
 ```bash
-# Real honest-vs-dishonest match on the spec (real worktrees + real go test)
+# Real honest-vs-dishonest match on the spec (real worktrees + real go test).
+# The dishonest fleet ships a theater test, a hallucinated API, AND a PR body
+# full of ghost claims — the referee catches all three, live.
 go run ./cmd/arena match
+
+# Run a match on another spec — multi-language: go test or node --test
+go run ./cmd/arena match --spec realtime-chat
 
 # Standalone referee: audit any diff (stdin)
 cat my-pr.diff | go run ./cmd/referee --stdin owner/repo pr-123
 
 # Live from GitHub (needs GITHUB_TOKEN)
 go run ./cmd/referee owner/repo 123 --live --post
+
+# Verify the season's tamper-evident trust ledger
+ARENA_STORE=arena_data/league.json go run ./cmd/arena ledger verify
 
 # Deterministic scripted demo for the demo video (no AO daemons needed)
 go run ./cmd/arena match --demo --serve
@@ -109,9 +119,14 @@ comment with file:line evidence on every agent PR.
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/health` | Liveness |
-| `POST` | `/api/match` | Start a real match (`fleet_a_diff`/`fleet_b_diff` optional; empty = honest-vs-dishonest fixtures) |
+| `POST` | `/api/match` | Start a real match (`fleet_a_diff`/`fleet_b_diff` optional; empty = honest-vs-dishonest fixtures incl. ghost-claim body) |
 | `GET` | `/api/match/status` | Latest match result |
+| `GET` | `/api/match/replay` | Recorded event timeline of the latest completed match |
 | `POST` | `/api/audit` | Run the referee on `{diff, body}` → verdict JSON |
+| `POST` | `/api/verify` | Recompute a receipt hash over a verdict → `{valid, recomputed}` (the tamper check) |
+| `POST` | `/api/determinism` | Run the same diff 5× → identical receipts or not |
+| `GET` | `/api/ledger` | Trust-ledger health: `{chain: {verified, genesis, length}}` |
+| `GET` | `/api/verdict/<receipt>` | Persisted verdict for a receipt (shareable `/#r/<receipt>` pages) |
 | `GET` | `/api/league` | ELO standings + record count |
 | `GET` | `/api/history` | Recent matches + audits |
 | `GET` | `/events` | SSE broadcast (session cards, referee findings, scores, status) |
@@ -124,15 +139,18 @@ cmd/
   arena/             CLI: match (real), referee, league
   referee/           Standalone referee binary (stdin / --live / --post)
 internal/
-  match/             Real match engine: git worktrees, go test -cover, fixtures
-  referee/           Check modules: symbol-reality, test-reality, claim-diff, merge-gate
-  league/            Persistent store: match history + ELO standings (JSON)
+  match/             Real match engine: git worktrees, spec manifest (go + node), fixtures, mutation differential
+  referee/           Check modules: symbol/compiler/test-reality, claim-diff, merge-gate, receipt hashing
+  league/            Persistent store: match history + ELO + chained trust ledger (JSON)
   broadcast/         SSE hub + scripted demo (video only)
   ao/                AO client: daemon management, session fleet control
   vcs/               GitHub client (PR, checks, reviews)
   verdict/           Trust-audit data model + receipt hashing
-frontend/            Vanilla-TS + Vite UI (Landing / Arena / Audit / League)
+frontend/            Vanilla-TS + Vite UI (Landing / Arena / Audit / League / Receipt)
 specs/               Challenge specs (PRD + acceptance tests) — the "maps"
+                     rest-api-auth    (Go, honest-vs-dishonest fixture)
+                     realtime-chat    (Node, zero-dependency WebSocket server)
+                     cli-task-tracker (Node, zero-dependency CLI + storage)
 ```
 
 ## Testing
