@@ -11,6 +11,7 @@ import (
 
 	"github.com/shashank-tomar0/ao-arena/internal/arena"
 	"github.com/shashank-tomar0/ao-arena/internal/broadcast"
+	"github.com/shashank-tomar0/ao-arena/internal/league"
 	"github.com/shashank-tomar0/ao-arena/internal/match"
 	"github.com/shashank-tomar0/ao-arena/internal/referee"
 )
@@ -28,6 +29,8 @@ func main() {
 		runMatch(ctx)
 	case "league":
 		runLeague(ctx)
+	case "ledger":
+		runLedger(ctx)
 	default:
 		usage()
 		os.Exit(1)
@@ -40,7 +43,8 @@ func usage() {
 Commands:
   referee <repo> <pr-ref>   Audit a pull request against reality
   match [--demo] [--serve]  Run a head-to-head on a spec; --serve broadcasts
-  league                    Show season standings`)
+  league                    Show season standings
+  ledger verify             Verify the season's tamper-evident trust ledger`)
 }
 
 func runReferee(ctx context.Context) {
@@ -108,17 +112,24 @@ func runRealMatch(ctx context.Context, hub *broadcast.Hub, specID string) {
 	if repoRoot == "" {
 		repoRoot = "."
 	}
-	specRel := "specs/" + specID
 
-	e := match.NewEngine(repoRoot, specRel, "example.com/rest-api-auth/auth")
+	e, err := match.NewEngine(repoRoot, specID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "match engine:", err)
+		os.Exit(1)
+	}
 	defer e.Cleanup()
 
+	// Each spec gets its own honest-vs-dishonest fixture — a real diff that
+	// lands in that spec's codebase (Go or Node) plus a ghost-claim PR body.
+	diffA, diffB, bodyA, bodyB := match.FixturesFor(specID)
+
 	fmt.Println("match: honest vs dishonest delivery on", specID)
-	fmt.Println("  fleet A (dishonest): theater test + hallucinated API")
+	fmt.Println("  fleet A (dishonest): theater test + hallucinated API + ghost claims")
 	fmt.Println("  fleet B (honest):    real tests, real assertions")
 	fmt.Println("  referee: deterministic checks against reality (no LLM judge)")
 
-	m, err := e.Run(ctx, match.DishonestDiff, match.HonestDiff)
+	m, err := e.Run(ctx, diffA, diffB, bodyA, bodyB)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "match error:", err)
 		os.Exit(1)
@@ -142,6 +153,9 @@ func runRealMatch(ctx context.Context, hub *broadcast.Hub, specID string) {
 func printFleet(name string, fr match.FleetResult) {
 	fmt.Printf("\nfleet %s — tests_pass=%v coverage=%.1f%% trust=%0.1f/100 mergeable=%v\n",
 		name, fr.TestsPass, fr.Coverage, fr.TrustScore, fr.Verdict != nil && fr.Verdict.Mergeable)
+	if fr.MutationResult != "" {
+		fmt.Println("  mutation differential: " + match.SummaryLine(fr.MutationResult))
+	}
 	if fr.Verdict == nil {
 		return
 	}
@@ -215,4 +229,25 @@ func findAOBinary() (string, error) {
 
 func runLeague(ctx context.Context) {
 	fmt.Print(arena.LeagueTable(nil))
+}
+
+// runLedger verifies the season's tamper-evident trust ledger: every record
+// is chained to the one before it, so rewriting any past result breaks the
+// chain from that point on. The genesis hash is the season's public anchor.
+func runLedger(ctx context.Context) {
+	store, err := league.NewStore(os.Getenv("ARENA_STORE"))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ledger:", err)
+		os.Exit(1)
+	}
+	st := store.VerifyChain()
+	if st.Length == 0 {
+		fmt.Println("trust ledger: empty season — nothing to verify yet")
+		return
+	}
+	if st.Verified {
+		fmt.Printf("trust ledger: VERIFIED ✓ — %d records chained, genesis %s\n", st.Length, st.Genesis)
+	} else {
+		fmt.Printf("trust ledger: TAMPERED ✗ — chain breaks at record %d of %d (genesis %s)\n", st.BrokenAt+1, st.Length, st.Genesis)
+	}
 }

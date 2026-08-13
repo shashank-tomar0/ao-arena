@@ -11,7 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,14 +33,19 @@ type App struct {
 	league      *league.Store
 	activeMatch *match.MatchResult
 	matchCancel context.CancelFunc
+
+	// matchEvents buffers the broadcast timeline of the running match so it
+	// can be persisted for replay after the match completes.
+	matchEvents []broadcast.Event
 }
 
 func main() {
-	// Default spec path (can be overridden by env). The engine runs real
-	// `go test -cover` against this spec in git worktrees.
-	specPath := os.Getenv("SPEC_PATH")
-	if specPath == "" {
-		specPath = "specs/rest-api-auth"
+	// Spec selection: SPEC_ID (default rest-api-auth). The engine runs real
+	// acceptance tests — `go test` or `node --test` — against this spec in
+	// git worktrees, whatever toolchain the spec declares.
+	specID := os.Getenv("SPEC_ID")
+	if specID == "" {
+		specID = "rest-api-auth"
 	}
 
 	// The match engine expects the repo root that contains specs/.
@@ -54,13 +59,41 @@ func main() {
 		log.Fatalf("league store: %v", err)
 	}
 
-	matchEngine := match.NewEngine(repoRoot, specPath, "example.com/rest-api-auth/auth")
+	engine, err := match.NewEngine(repoRoot, specID)
+	if err != nil {
+		log.Fatalf("match engine: %v", err)
+	}
 
 	app := &App{
 		hub:         broadcast.NewHub(),
-		matchEngine: matchEngine,
+		matchEngine: engine,
 		referee:     referee.NewEngine(nil),
 		league:      store,
+	}
+
+	// The match engine's real pipeline phases (worktree → testing →
+	// mutation → referee → verdict) become live session cards on the arena
+	// boards and progress lines in the evidence rail. Nothing is scripted:
+	// every phase reflects the actual state of the running match — and every
+	// event is recorded so the match can be replayed later.
+	app.matchEngine.PhaseFn = func(fleet, phase, detail string) {
+		card := broadcast.SessionCard{
+			ID:     "fleet-" + fleet,
+			Fleet:  fleet,
+			Label:  "fleet-" + fleet + "-" + app.matchEngine.Spec.Lang + "-harness",
+			Branch: fleetBranch(fleet),
+			Status: phase,
+			TS:     time.Now().UnixMilli(),
+		}
+		app.record(card)
+		ev := broadcast.RefereeEvent{
+			Fleet:    fleet,
+			Severity: "info",
+			Category: "match",
+			Message:  detail,
+			TS:       time.Now().UnixMilli(),
+		}
+		app.record(ev)
 	}
 
 	mux := http.NewServeMux()
@@ -69,10 +102,16 @@ func main() {
 	mux.HandleFunc("/api/health", app.handleHealth)
 	mux.HandleFunc("/api/match", app.handleMatch)
 	mux.HandleFunc("/api/match/status", app.handleMatchStatus)
+	mux.HandleFunc("/api/match/replay", app.handleMatchReplay)
 	mux.HandleFunc("/api/spec", app.handleSpec)
 	mux.HandleFunc("/api/audit", app.handleAudit)
+	mux.HandleFunc("/api/verify", app.handleVerify)
+	mux.HandleFunc("/api/determinism", app.handleDeterminism)
+	mux.HandleFunc("/api/ledger", app.handleLedger)
+	mux.HandleFunc("/api/verdict/", app.handleVerdictPage)
 	mux.HandleFunc("/api/league", app.handleLeague)
 	mux.HandleFunc("/api/history", app.handleHistory)
+	mux.HandleFunc("/api/stats", app.handleStats)
 
 	// SSE broadcast
 	mux.HandleFunc("/events", app.handleEvents)
@@ -87,13 +126,36 @@ func main() {
 	addr := "127.0.0.1:" + port
 
 	log.Printf("AO Arena server starting on http://%s", addr)
-	log.Printf("Spec: %s | store: %s", specPath, storePath(store))
+	log.Printf("Spec: %s (%s) | store: %s", app.matchEngine.Spec.ID, app.matchEngine.Spec.Lang, storePath(store))
 	log.Printf("SSE: http://%s/events", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
 func storePath(s *league.Store) string {
 	return os.Getenv("ARENA_STORE")
+}
+
+// record broadcasts an event to SSE subscribers and appends it to the
+// running match's timeline so the match can be replayed from the league
+// store after it completes.
+func (a *App) record(data any) {
+	var ev broadcast.Event
+	switch d := data.(type) {
+	case broadcast.SessionCard:
+		ev = broadcast.Event{Kind: "session", Data: d}
+	case broadcast.RefereeEvent:
+		ev = broadcast.Event{Kind: "referee", Data: d}
+	case [2]float64:
+		ev = broadcast.Event{Kind: "score", Data: d}
+	case map[string]string:
+		ev = broadcast.Event{Kind: "status", Data: d}
+	default:
+		return
+	}
+	a.hub.Publish(ev.Kind, ev.Data)
+	a.mu.Lock()
+	a.matchEvents = append(a.matchEvents, ev)
+	a.mu.Unlock()
 }
 
 func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -103,12 +165,12 @@ func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleSpec(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	spec := map[string]string{
-		"id":          filepath.Base(a.matchEngine.SpecRelPath),
-		"name":        filepath.Base(a.matchEngine.SpecRelPath),
-		"description": "REST API with authentication",
-	}
-	json.NewEncoder(w).Encode(spec)
+	json.NewEncoder(w).Encode(map[string]any{
+		"id":     a.matchEngine.Spec.ID,
+		"name":   a.matchEngine.Spec.Name,
+		"lang":   a.matchEngine.Spec.Lang,
+		"checks": []string{"symbol-reality", "compiler-reality", "test-reality", "claim-vs-diff", "merge-gate"},
+	})
 }
 
 func (a *App) handleMatch(w http.ResponseWriter, r *http.Request) {
@@ -134,20 +196,34 @@ func (a *App) handleMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Empty diffs default to the canonical honest-vs-dishonest fixture: the
-	// referee really runs the spec's tests in fresh worktrees and really
-	// audits both deliveries. Nothing is scripted on this path.
+	// Empty diffs default to the canonical honest-vs-dishonest fixture for
+	// the configured spec: the referee really runs the spec's tests in fresh
+	// worktrees and really audits both deliveries. Nothing is scripted on
+	// this path. The fixture ships a dishonest PR *body* full of ghost
+	// claims too, so the match catches all three documented failure modes
+	// live on every spec (Go or Node).
+	diffA, diffB, bodyA, bodyB := match.FixturesFor(a.matchEngine.Spec.ID)
+	if req.FleetADiff != "" {
+		bodyA = "" // caller supplied the delivery — no fixture body
+	}
+	if req.FleetBDiff != "" {
+		bodyB = ""
+	}
 	if req.FleetADiff == "" {
-		req.FleetADiff = match.DishonestDiff
+		req.FleetADiff = diffA
 	}
 	if req.FleetBDiff == "" {
-		req.FleetBDiff = match.HonestDiff
+		req.FleetBDiff = diffB
 	}
 
 	// Start the match asynchronously.
 	go func() {
-		a.hub.BroadcastStatus("running", "Fleets are working — real worktrees, real go test, real referee.")
-		a.hub.BroadcastReferee(broadcast.RefereeEvent{
+		a.mu.Lock()
+		a.matchEvents = nil
+		a.mu.Unlock()
+
+		a.record(map[string]string{"status": "running", "detail": "Fleets are working — real worktrees, real " + a.matchEngine.Spec.Lang + " tests, real referee."})
+		a.record(broadcast.RefereeEvent{
 			Fleet:    "system",
 			Severity: "info",
 			Category: "match",
@@ -155,17 +231,17 @@ func (a *App) handleMatch(w http.ResponseWriter, r *http.Request) {
 			TS:       time.Now().UnixMilli(),
 		})
 
-		result, err := a.matchEngine.Run(ctx, req.FleetADiff, req.FleetBDiff)
+		result, err := a.matchEngine.Run(ctx, req.FleetADiff, req.FleetBDiff, bodyA, bodyB)
 		if err != nil {
 			log.Printf("Match error: %v", err)
-			a.hub.BroadcastReferee(broadcast.RefereeEvent{
+			a.record(broadcast.RefereeEvent{
 				Fleet:    "system",
 				Severity: "critical",
 				Category: "match",
 				Message:  "Match failed: " + err.Error(),
 				TS:       time.Now().UnixMilli(),
 			})
-			a.hub.BroadcastStatus("error", "Match failed: "+err.Error())
+			a.record(map[string]string{"status": "error", "detail": "Match failed: " + err.Error()})
 			return
 		}
 
@@ -177,20 +253,20 @@ func (a *App) handleMatch(w http.ResponseWriter, r *http.Request) {
 		// cumulative scoreboard once.
 		a.broadcastVerdict("a", result.FleetA)
 		a.broadcastVerdict("b", result.FleetB)
-		a.hub.BroadcastScore(result.FleetA.TrustScore, result.FleetB.TrustScore)
+		a.record([2]float64{result.FleetA.TrustScore, result.FleetB.TrustScore})
 
-		a.hub.BroadcastReferee(broadcast.RefereeEvent{
+		a.record(broadcast.RefereeEvent{
 			Fleet:    "system",
 			Severity: "info",
 			Category: "match",
 			Message:  "Match complete: winner " + result.Winner,
 			TS:       time.Now().UnixMilli(),
 		})
-		a.hub.BroadcastStatus("complete", "Match complete — winner " + result.Winner)
+		a.record(map[string]string{"status": "complete", "detail": "Match complete — winner " + result.Winner})
 
-		// Persist the season record + ELO. Winner is mapped to the display
-		// name so standings and history read naturally.
-		_ = a.league.Record(league.MatchRecord{
+		// Persist the season record + ELO, sealed into the trust ledger with
+		// the full verdicts and the event timeline (for replay).
+		rec := league.MatchRecord{
 			ID:         fmt.Sprintf("m-%d", time.Now().UnixMilli()),
 			Kind:       league.KindMatch,
 			SpecID:     result.SpecID,
@@ -201,7 +277,25 @@ func (a *App) handleMatch(w http.ResponseWriter, r *http.Request) {
 			Winner:     fleetDisplayName(result.Winner),
 			Summary:    "winner " + fleetDisplayName(result.Winner),
 			DurationMS: result.Duration.Milliseconds(),
-		})
+		}
+		rec.VerdictA, _ = json.Marshal(result.FleetA.Verdict)
+		rec.VerdictB, _ = json.Marshal(result.FleetB.Verdict)
+		if result.FleetA.Verdict != nil {
+			rec.Receipt = result.FleetA.Verdict.ReceiptHash
+		}
+		if result.FleetB.Verdict != nil {
+			rec.Receipt = result.FleetB.Verdict.ReceiptHash
+		}
+		a.mu.Lock()
+		events := append([]broadcast.Event(nil), a.matchEvents...)
+		a.mu.Unlock()
+		for _, ev := range events {
+			b, err := json.Marshal(ev)
+			if err == nil {
+				rec.Events = append(rec.Events, b)
+			}
+		}
+		_ = a.league.Record(rec)
 	}()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -217,12 +311,16 @@ func (a *App) broadcastVerdict(fleet string, fr match.FleetResult) {
 		if sev == "" {
 			sev = "info"
 		}
-		a.hub.BroadcastReferee(broadcast.RefereeEvent{
+		evidence := f.Evidence
+		if evidence == "" {
+			evidence = f.EvidencePath
+		}
+		a.record(broadcast.RefereeEvent{
 			Fleet:    fleet,
 			Severity: sev,
 			Category: string(f.Category),
 			Message:  f.Message,
-			Evidence: f.EvidencePath,
+			Evidence: evidence,
 			TS:       time.Now().UnixMilli(),
 		})
 	}
@@ -268,11 +366,12 @@ func (a *App) handleAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Repo   string `json:"repo"`
-		PRRef  string `json:"pr_ref"`
-		Diff   string `json:"diff"`
-		Body   string `json:"body"`
-		Claims []string `json:"claims"`
+		Repo       string   `json:"repo"`
+		PRRef      string   `json:"pr_ref"`
+		Diff       string   `json:"diff"`
+		Body       string   `json:"body"`
+		Claims     []string `json:"claims"`
+		TestOutput string   `json:"test_output"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -296,6 +395,9 @@ func (a *App) handleAudit(w http.ResponseWriter, r *http.Request) {
 		Diff:            req.Diff,
 		Body:            req.Body,
 		ClaimStatements: req.Claims,
+		// Optional CI/build output: real toolchain failures become
+		// compiler-reality findings with the compiler's own file:line.
+		CompilerErrors: referee.ParseCompilerErrors(req.TestOutput),
 	}
 	out, err := a.referee.Run(r.Context(), pr)
 	if err != nil {
@@ -303,7 +405,10 @@ func (a *App) handleAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Persist the audit so the league page shows a complete activity log.
+	// Persist the audit — verdict JSON + receipt sealed into the trust ledger
+	// — so the league shows it AND the receipt is verifiable forever
+	// (shareable /r/<receipt> pages).
+	vJSON, _ := json.Marshal(out.Verdict)
 	_ = a.league.Record(league.MatchRecord{
 		ID:         req.PRRef,
 		Kind:       league.KindAudit,
@@ -313,6 +418,8 @@ func (a *App) handleAudit(w http.ResponseWriter, r *http.Request) {
 		Winner:     auditWinner(out.Verdict),
 		Summary:    out.Verdict.Summary,
 		DurationMS: out.Verdict.DurationMS,
+		Receipt:    out.Verdict.ReceiptHash,
+		Verdict:    vJSON,
 	})
 
 	w.Header().Set("Content-Type", "application/json")
@@ -325,6 +432,173 @@ func auditWinner(v *verdict.Verdict) string {
 		return "clean"
 	}
 	return "blocked"
+}
+
+// handleVerify recomputes the receipt hash over a verdict and compares it to
+// the claimed receipt. This is the tamper-evidence demo: edit any finding
+// (or score, or summary) and the receipt breaks.
+func (a *App) handleVerify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Verdict *verdict.Verdict `json:"verdict"`
+		Receipt string           `json:"receipt"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Verdict == nil {
+		http.Error(w, "verdict is required", http.StatusBadRequest)
+		return
+	}
+	recomputed := referee.Hash(*req.Verdict)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"valid":      recomputed == req.Receipt && req.Receipt != "",
+		"recomputed": recomputed,
+		"claimed":    req.Receipt,
+	})
+}
+
+// handleDeterminism runs the same audit input through the referee N times and
+// proves identical receipts — the deterministic-verdict guarantee, measured.
+func (a *App) handleDeterminism(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Diff string `json:"diff"`
+		Body string `json:"body"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Diff == "" {
+		http.Error(w, "diff is required", http.StatusBadRequest)
+		return
+	}
+
+	const runs = 5
+	receipts := make([]string, 0, runs)
+	var first *verdict.Verdict
+	for i := 0; i < runs; i++ {
+		// Identical input every run — the receipt hash covers repo, ref, and
+		// findings, so the PRRef must be identical too. Only then is "same
+		// diff → same receipt" a real, measured guarantee.
+		pr := &referee.PRContext{
+			Repo:            "arena/determinism",
+			PRRef:           "det-run",
+			HeadRef:         "HEAD",
+			Diff:            req.Diff,
+			Body:            req.Body,
+			ClaimStatements: []string{},
+		}
+		out, err := a.referee.Run(r.Context(), pr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		receipts = append(receipts, out.Verdict.ReceiptHash)
+		if first == nil {
+			first = out.Verdict
+		}
+	}
+
+	deterministic := true
+	for _, rc := range receipts {
+		if rc != receipts[0] {
+			deterministic = false
+			break
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"receipts":     receipts,
+		"deterministic": deterministic,
+		"score":        first.TrustScore,
+		"runs":         runs,
+	})
+}
+
+// handleLedger reports the health of the season's tamper-evident trust
+// ledger: every record is chained to the one before it, so rewriting any
+// past result breaks the chain.
+func (a *App) handleLedger(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"chain": a.league.VerifyChain(),
+	})
+}
+
+// handleVerdictPage resolves a receipt hash to its persisted verdict — the
+// shareable /r/<receipt> surface. Any audit or match verdict recorded in the
+// league can be re-opened and re-verified by its receipt alone.
+func (a *App) handleVerdictPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	hash := strings.TrimPrefix(r.URL.Path, "/api/verdict/")
+	if hash == "" {
+		http.Error(w, "receipt hash required", http.StatusBadRequest)
+		return
+	}
+	rec := a.league.FindByReceipt(hash)
+	if rec == nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]any{"found": false})
+		return
+	}
+
+	resp := map[string]any{
+		"found":      true,
+		"kind":       rec.Kind,
+		"winner":     rec.Winner,
+		"created_at": rec.CreatedAt,
+		"summary":    rec.Summary,
+		"score_a":    rec.ScoreA,
+		"score_b":    rec.ScoreB,
+	}
+	if len(rec.Verdict) > 0 {
+		resp["verdict"] = json.RawMessage(rec.Verdict)
+	}
+	if len(rec.VerdictA) > 0 {
+		resp["fleet_a"] = json.RawMessage(rec.VerdictA)
+	}
+	if len(rec.VerdictB) > 0 {
+		resp["fleet_b"] = json.RawMessage(rec.VerdictB)
+	}
+	json.NewEncoder(w).Encode(resp)
+}
+
+// handleMatchReplay returns the recorded broadcast timeline of the most
+// recent completed match — the raw material for the Arena replay mode.
+func (a *App) handleMatchReplay(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var found *league.MatchRecord
+	for _, h := range a.league.History(50) {
+		if h.Kind == league.KindMatch && len(h.Events) > 0 {
+			cp := h
+			found = &cp
+			break
+		}
+	}
+	if found == nil {
+		json.NewEncoder(w).Encode(map[string]any{"events": []any{}})
+		return
+	}
+	events := make([]json.RawMessage, len(found.Events))
+	copy(events, found.Events)
+	json.NewEncoder(w).Encode(map[string]any{
+		"match_id": found.ID,
+		"events":   events,
+	})
+}
+
+// fleetBranch labels each fleet's role for the board cards.
+func fleetBranch(id string) string {
+	if id == "a" {
+		return "dishonest"
+	}
+	return "honest"
 }
 
 // fleetDisplayName maps the engine's fleet identifiers to display names.
@@ -344,6 +618,28 @@ func (a *App) handleLeague(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{
 		"standings": a.league.Standings(),
 		"matches":   a.league.Count(),
+	})
+}
+
+// handleStats reports the arena's real, computed numbers: matches officiated
+// and audits run (persisted in the league store) plus the benchmark summary
+// (computed live by actually running the crafted PRs through the referee).
+// No invented metrics — everything here is measured.
+func (a *App) handleStats(w http.ResponseWriter, r *http.Request) {
+	matches, audits := 0, 0
+	for _, h := range a.league.History(0) {
+		if h.Kind == league.KindMatch {
+			matches++
+		} else {
+			audits++
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"matches_officiated": matches,
+		"audits_run":         audits,
+		"benchmark":          referee.BenchmarkSummary(),
+		"ledger":             a.league.VerifyChain(),
 	})
 }
 

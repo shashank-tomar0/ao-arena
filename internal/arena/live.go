@@ -8,7 +8,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/shashank-tomar0/ao-arena/internal/ao"
@@ -24,15 +26,20 @@ type LiveRunner struct {
 	Hub     *broadcast.Hub
 	Engine  *referee.Engine
 	aoBin   string
+
+	// workdirs remembers each fleet's task repo so the PR diff can be read
+	// straight from git when the session lands (fetchDiff).
+	workdirs map[string]string
 }
 
 // NewLiveRunner builds a live match runner.
 func NewLiveRunner(aoBin string, hub *broadcast.Hub) *LiveRunner {
 	return &LiveRunner{
-		Manager: ao.NewManager(filepath.Join(os.TempDir(), "ao-arena")),
-		Hub:     hub,
-		Engine:  referee.NewEngine(nil),
-		aoBin:   aoBin,
+		Manager:  ao.NewManager(filepath.Join(os.TempDir(), "ao-arena")),
+		Hub:      hub,
+		Engine:   referee.NewEngine(nil),
+		aoBin:    aoBin,
+		workdirs: map[string]string{},
 	}
 }
 
@@ -62,6 +69,10 @@ func (r *LiveRunner) SpawnFleet(ctx context.Context, fleet, task, workdir string
 	if err != nil {
 		return "", fmt.Errorf("spawn session for %s: %w", fleet, err)
 	}
+
+	// Remember the fleet's task repo so the real PR diff can be read from
+	// git when work lands.
+	r.workdirs[fleet] = workdir
 
 	// Broadcast the new session card immediately (live board).
 	r.Hub.BroadcastSession(broadcast.SessionCard{
@@ -132,17 +143,44 @@ func (r *LiveRunner) watchPR(ctx context.Context, fleet, id string) {
 	}
 }
 
-// fetchDiff retrieves the PR diff from the fleet's daemon (VCS-backed).
+// fetchDiff retrieves the PR diff from the fleet's task repo. AO's daemon
+// doesn't expose a raw diff route in v1, so we read the diff straight from
+// git: the fleet's session opened a PR from a branch/ref in the workdir the
+// daemon was pointed at.
 func (r *LiveRunner) fetchDiff(ctx context.Context, fleet, prRef string) string {
-	c := r.Manager.Client(fleet)
-	if c == nil {
+	workdir := r.workdirs[fleet]
+	if workdir == "" {
 		return ""
 	}
-	// AO's daemon doesn't expose a raw diff route in v1; read from the
-	// worktree if present. For the demo we fall back to the accepted
-	// "live" path: the CLI fetches the PR diff from GitHub.
-	// TODO(live): AO daemon diff route or worktree path resolution.
+	return FetchPRDiff(ctx, workdir, prRef)
+}
+
+// FetchPRDiff returns the unified diff of a branch/ref against its base in a
+// git repository. It tries the branch's merge-base against main, then
+// origin/main, then a plain range — whatever the fleet's session actually
+// produced. Empty string means no diff could be resolved.
+func FetchPRDiff(ctx context.Context, workdir, prRef string) string {
+	if prRef == "" || workdir == "" {
+		return ""
+	}
+	bases := []string{"main", "origin/main", "master", "origin/master", "HEAD"}
+	for _, base := range bases {
+		if out, err := gitDiff(ctx, workdir, base, prRef); err == nil && strings.TrimSpace(out) != "" {
+			return out
+		}
+	}
 	return ""
+}
+
+// gitDiff runs `git diff <base>...<ref>` in the repo and returns the output.
+func gitDiff(ctx context.Context, workdir, base, ref string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "diff", base+"..."+ref)
+	cmd.Dir = workdir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }
 
 // severities returns the severities of findings, defaulting to info.

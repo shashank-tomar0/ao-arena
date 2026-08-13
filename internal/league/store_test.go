@@ -1,6 +1,8 @@
 package league
 
 import (
+	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -66,23 +68,89 @@ func TestStandingsELO(t *testing.T) {
 		byName[x.Name] = x
 	}
 
-	// A: +32 -32 = 1000, 2 matches (1W 1L). C: 1000 + 32 = 1032 (1W).
+	// Real ELO with expected score:
+	//  m1 A(1000) beats B(1000): expected 0.5 → A +16 = 1016, B -16 = 984.
+	//  m2 A(1016) loses to C(1000): expected_A = 1/(1+10^-0.04) ≈ 0.52301
+	//     → A -16.736 ≈ 999.26, C +16.736 ≈ 1016.74.
 	a := byName["A"]
-	if a.ELO != 1000 || a.Wins != 1 || a.Losses != 1 || a.Matches != 2 {
+	if math.Abs(a.ELO-999.26) > 0.01 || a.Wins != 1 || a.Losses != 1 || a.Matches != 2 {
 		t.Errorf("A standings wrong: %+v", a)
 	}
 	c := byName["C"]
-	if c.ELO != 1032 || c.Wins != 1 {
+	if math.Abs(c.ELO-1016.74) > 0.01 || c.Wins != 1 {
 		t.Errorf("C standings wrong: %+v", c)
 	}
 	b := byName["B"]
-	if b.ELO != 968 || b.Losses != 1 {
+	if math.Abs(b.ELO-984) > 0.01 || b.Losses != 1 {
 		t.Errorf("B standings wrong: %+v", b)
 	}
 
 	// Sorted by ELO desc: C first.
 	if st[0].Name != "C" {
 		t.Errorf("expected C on top, got %+v", st[0])
+	}
+}
+
+func TestTrustLedgerChain(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "league.json")
+	s, err := NewStore(path)
+	if err != nil {
+		t.Fatalf("NewStore: %v", err)
+	}
+
+	// An empty season verifies trivially.
+	if st := s.VerifyChain(); !st.Verified || st.Length != 0 {
+		t.Fatalf("empty chain should verify, got %+v", st)
+	}
+
+	base := time.Now().UTC()
+	_ = s.Record(MatchRecord{ID: "m1", Kind: KindMatch, FleetA: "A", FleetB: "B", Winner: "A", Receipt: "r1", Summary: "a wins", CreatedAt: base})
+	_ = s.Record(MatchRecord{ID: "m2", Kind: KindMatch, FleetA: "A", FleetB: "C", Winner: "C", Receipt: "r2", Summary: "c wins", CreatedAt: base.Add(time.Minute)})
+	_ = s.Record(MatchRecord{ID: "a1", Kind: KindAudit, FleetA: "Audit", FleetB: "pr-1", Winner: "blocked", Receipt: "r3", CreatedAt: base.Add(2 * time.Minute)})
+
+	st := s.VerifyChain()
+	if !st.Verified || st.Length != 3 || st.Genesis == "" {
+		t.Fatalf("chain should verify after 3 records, got %+v", st)
+	}
+
+	// Tamper with the middle record's summary: every seal from there on
+	// must break.
+	s.mu.Lock()
+	s.records[1].Summary = "rewritten history"
+	s.mu.Unlock()
+	st = s.VerifyChain()
+	if st.Verified {
+		t.Fatalf("tampered chain must not verify, got %+v", st)
+	}
+	if st.BrokenAt != 1 {
+		t.Fatalf("expected break at index 1, got %+v", st)
+	}
+
+	// Receipt lookup powers shareable /r/<receipt> pages.
+	if r := s.FindByReceipt("r2"); r == nil || r.ID != "m2" {
+		t.Fatalf("FindByReceipt(r2) = %+v", r)
+	}
+	if r := s.FindByReceipt("nope"); r != nil {
+		t.Fatalf("FindByReceipt(nope) should be nil")
+	}
+
+	// Full verdict persistence round-trips.
+	s2, _ := NewStore(path)
+	_ = s2.Record(MatchRecord{ID: "m3", Kind: KindAudit, FleetA: "Audit", FleetB: "pr-2", Winner: "blocked", Receipt: "r4", Verdict: json.RawMessage(`{"trust_score": 40}`), CreatedAt: base.Add(3 * time.Minute)})
+	s3, _ := NewStore(path)
+	found := s3.FindByReceipt("r4")
+	if found == nil || len(found.Verdict) == 0 {
+		t.Fatalf("verdict persistence failed: %+v", found)
+	}
+	var stored struct {
+		TrustScore float64 `json:"trust_score"`
+	}
+	if err := json.Unmarshal(found.Verdict, &stored); err != nil || stored.TrustScore != 40 {
+		t.Fatalf("verdict content wrong: %+v (err %v)", found.Verdict, err)
+	}
+	if st := s3.VerifyChain(); !st.Verified {
+		t.Fatalf("chain should verify after reopen, got %+v", st)
 	}
 }
 
