@@ -76,8 +76,13 @@ The server serves the web app, the REST API, and the SSE broadcast stream on one
 ```bash
 cd frontend
 npm install
-npm run dev                  # http://localhost:5173 (proxy-less; use the Go server for API)
+npm run dev                  # http://localhost:5173 — proxies /api + /events to the Go server
 ```
+
+The vite dev server proxies `/api` and `/events` to the Go server on `:8080` by
+default, so the UI works identically in dev and production. To watch a
+`arena match --demo --serve` broadcast instead, start vite with
+`VITE_API_PROXY=http://127.0.0.1:8091`.
 
 To rebuild the embedded UI after frontend changes:
 
