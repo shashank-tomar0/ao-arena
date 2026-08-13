@@ -1,4 +1,4 @@
-(function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const n of document.querySelectorAll('link[rel="modulepreload"]'))s(n);new MutationObserver(n=>{for(const i of n)if(i.type==="childList")for(const c of i.addedNodes)c.tagName==="LINK"&&c.rel==="modulepreload"&&s(c)}).observe(document,{childList:!0,subtree:!0});function a(n){const i={};return n.integrity&&(i.integrity=n.integrity),n.referrerPolicy&&(i.referrerPolicy=n.referrerPolicy),n.crossOrigin==="use-credentials"?i.credentials="include":n.crossOrigin==="anonymous"?i.credentials="omit":i.credentials="same-origin",i}function s(n){if(n.ep)return;n.ep=!0;const i=a(n);fetch(n.href,i)}})();function W(e=document){const t=e.querySelectorAll(".reveal");if(t.length===0)return;if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){t.forEach(s=>s.classList.add("in-view"));return}const a=new IntersectionObserver(s=>{for(const n of s)n.isIntersecting&&(n.target.classList.add("in-view"),a.unobserve(n.target))},{threshold:.12,rootMargin:"0px 0px -8% 0px"});t.forEach(s=>a.observe(s))}function h(e,t,a=700){if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){e.textContent=String(Math.round(t));return}const n=Number(e.textContent)||0,i=performance.now(),c=o=>{const d=Math.min(1,(o-i)/a),r=1-Math.pow(1-d,3);e.textContent=String(Math.round(n+(t-n)*r)),d<1&&requestAnimationFrame(c)};requestAnimationFrame(c)}async function w(e,t){const a=await fetch(e,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(t)});if(!a.ok){const s=await a.text().catch(()=>"");throw new Error(s||`request failed: ${a.status}`)}return a.json()}async function y(e){const t=await fetch(e);if(!t.ok)throw new Error(`request failed: ${t.status}`);return t.json()}function G(e,t,a,s){return w("/api/audit",{diff:e,body:t,claims:a??[],test_output:s??""})}function U(){return w("/api/match",{fleet_a_diff:"",fleet_b_diff:""})}function _(e,t){return w("/api/verify",{verdict:e,receipt:t})}function J(e,t){return w("/api/determinism",{diff:e,body:t})}function z(){return y("/api/ledger")}function X(){return y("/api/match/replay")}function Y(e){return y(`/api/verdict/${encodeURIComponent(e)}`)}function Q(){return y("/api/league")}function Z(){return y("/api/history")}function ee(){return y("/api/stats")}const te=[{t:"theater test caught · expect(true).toBe(true)",c:!0},{t:"hallucinated api · machenhance.Generate()",c:!0},{t:"fleet B merged clean · trust 100/100",c:!1},{t:"ghost claim refuted · file:line evidence",c:!0},{t:"mutation differential · suite survives broken code",c:!0},{t:"compiler backed · undefined symbol at auth_test.go:16",c:!0}];function ae(){const e=te.map(t=>`<span class="ticker-item ${t.c?"crit":""}">${t.t}</span>`).join("");return e+e}function se(e){return`
+(function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const n of document.querySelectorAll('link[rel="modulepreload"]'))s(n);new MutationObserver(n=>{for(const d of n)if(d.type==="childList")for(const c of d.addedNodes)c.tagName==="LINK"&&c.rel==="modulepreload"&&s(c)}).observe(document,{childList:!0,subtree:!0});function a(n){const d={};return n.integrity&&(d.integrity=n.integrity),n.referrerPolicy&&(d.referrerPolicy=n.referrerPolicy),n.crossOrigin==="use-credentials"?d.credentials="include":n.crossOrigin==="anonymous"?d.credentials="omit":d.credentials="same-origin",d}function s(n){if(n.ep)return;n.ep=!0;const d=a(n);fetch(n.href,d)}})();function G(e=document){const t=e.querySelectorAll(".reveal");if(t.length===0)return;if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){t.forEach(s=>s.classList.add("in-view"));return}const a=new IntersectionObserver(s=>{for(const n of s)n.isIntersecting&&(n.target.classList.add("in-view"),a.unobserve(n.target))},{threshold:.12,rootMargin:"0px 0px -8% 0px"});t.forEach(s=>a.observe(s))}function h(e,t,a=700){if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){e.textContent=String(Math.round(t));return}const n=Number(e.textContent)||0,d=performance.now(),c=p=>{const i=Math.min(1,(p-d)/a),r=1-Math.pow(1-i,3);e.textContent=String(Math.round(n+(t-n)*r)),i<1&&requestAnimationFrame(c)};requestAnimationFrame(c)}async function w(e,t){const a=await fetch(e,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(t)});if(!a.ok){const s=await a.text().catch(()=>"");throw new Error(s||`request failed: ${a.status}`)}return a.json()}async function y(e){const t=await fetch(e);if(!t.ok)throw new Error(`request failed: ${t.status}`);return t.json()}function U(e,t,a,s){return w("/api/audit",{diff:e,body:t,claims:a??[],test_output:s??""})}function J(){return w("/api/match",{fleet_a_diff:"",fleet_b_diff:""})}function _(e,t){return w("/api/verify",{verdict:e,receipt:t})}function z(e,t){return w("/api/determinism",{diff:e,body:t})}function X(){return y("/api/ledger")}function Y(){return y("/api/match/replay")}function Q(e){return y(`/api/verdict/${encodeURIComponent(e)}`)}function Z(){return y("/api/league")}function ee(){return y("/api/history")}function te(){return y("/api/stats")}const ae=[{t:"theater test caught · expect(true).toBe(true)",c:!0},{t:"hallucinated api · machenhance.Generate()",c:!0},{t:"fleet B merged clean · trust 100/100",c:!1},{t:"ghost claim refuted · file:line evidence",c:!0},{t:"mutation differential · suite survives broken code",c:!0},{t:"compiler backed · undefined symbol at auth_test.go:16",c:!0}];function se(){const e=ae.map(t=>`<span class="ticker-item ${t.c?"crit":""}">${t.t}</span>`).join("");return e+e}function ne(e){return`
     <div class="landing" id="landing">
       <!-- HERO: broadcast console -->
       <header class="hero">
@@ -62,7 +62,7 @@
 
       <!-- TICKER: the broadcast strip -->
       <div class="ticker reveal" aria-hidden="true">
-        <div class="ticker-track">${ae()}</div>
+        <div class="ticker-track">${se()}</div>
       </div>
 
       <!-- FEATURES: ruled cells -->
@@ -177,7 +177,7 @@
         </div>
       </footer>
     </div>
-  `}function ne(){return ee().then(e=>{const t=document.getElementById("stat-benchmark"),a=document.getElementById("stat-deterministic"),s=document.getElementById("stat-matches"),n=document.getElementById("stat-audits");t&&(t.textContent=`${e.benchmark.caught}/${e.benchmark.total}`),a&&(a.textContent=e.benchmark.deterministic?"✓":"—"),s&&(s.textContent=String(e.matches_officiated)),n&&(n.textContent=String(e.audits_run))}).catch(()=>{}),()=>{}}function ie(){const e={session:[],referee:[],score:[],clock:[],status:[]};let t=null;const a=Date.now();return{onSession(s){e.session.push(s)},onReferee(s){e.referee.push(s)},onScore(s){e.score.push(s)},onClock(s){e.clock.push(s)},onStatus(s){e.status.push(s)},start(){t=new EventSource("/events"),t.onmessage=n=>{let i;try{i=JSON.parse(n.data)}catch{return}switch(i.kind){case"session":e.session.forEach(c=>c(i.data));break;case"referee":e.referee.forEach(c=>c(i.data));break;case"score":{const[c,o]=i.data;e.score.forEach(d=>d(c,o))}break;case"status":e.status.forEach(c=>c(i.data));break}};const s=window.setInterval(()=>{e.clock.forEach(n=>n(Date.now()-a))},250);t.addEventListener("close",()=>window.clearInterval(s))},stop(){t==null||t.close()},async runMatch(){const s=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fleet_a_diff:"",fleet_b_diff:""})});if(!s.ok)throw new Error("failed to start match: "+s.status);const n=await s.json();e.status.forEach(i=>i(n))}}}function H(){return ie()}const P={pending:"Pending",working:"Iterating",needs_input:"Needs input",ci_failed:"CI failed",changes_requested:"Changes requested",review_pending:"In review",mergeable:"Mergeable",merged:"Merged"},I=new Map,f=[],$=new Map;let u=[0,0],g=null;function de(){return`
+  `}function ie(){return te().then(e=>{const t=document.getElementById("stat-benchmark"),a=document.getElementById("stat-deterministic"),s=document.getElementById("stat-matches"),n=document.getElementById("stat-audits");t&&(t.textContent=`${e.benchmark.caught}/${e.benchmark.total}`),a&&(a.textContent=e.benchmark.deterministic?"✓":"—"),s&&(s.textContent=String(e.matches_officiated)),n&&(n.textContent=String(e.audits_run))}).catch(()=>{}),()=>{}}function de(){const e={session:[],referee:[],score:[],status:[]};let t=null;return{onSession(a){e.session.push(a)},onReferee(a){e.referee.push(a)},onScore(a){e.score.push(a)},onStatus(a){e.status.push(a)},start(){t=new EventSource("/events"),t.onmessage=a=>{let s;try{s=JSON.parse(a.data)}catch{return}switch(s.kind){case"session":e.session.forEach(n=>n(s.data));break;case"referee":e.referee.forEach(n=>n(s.data));break;case"score":{const[n,d]=s.data;e.score.forEach(c=>c(n,d))}break;case"status":e.status.forEach(n=>n(s.data));break}}},stop(){t==null||t.close(),t=null},async runMatch(){const a=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fleet_a_diff:"",fleet_b_diff:""})});if(!a.ok)throw new Error("failed to start match: "+a.status);const s=await a.json();e.status.forEach(n=>n(s))}}}function P(){return de()}const j={pending:"Pending",working:"Iterating",needs_input:"Needs input",ci_failed:"CI failed",changes_requested:"Changes requested",review_pending:"In review",mergeable:"Mergeable",merged:"Merged"},I=new Map,f=[],$=new Map;let u=[0,0],m=null;function ce(){return`
     <div class="page arena">
       <main class="container container-wide">
         <div class="page-head">
@@ -250,14 +250,14 @@
         </div>
       </main>
     </div>
-  `}function ce(){const e=["pending","working","needs_input","ci_failed","changes_requested","review_pending","mergeable","merged"];["a","b"].forEach(t=>{const a=document.getElementById(`kanban-${t}`);e.forEach(s=>{const n=document.createElement("div");n.className="lane",n.dataset.lane=s,n.innerHTML=`
-        <div class="lane-head"><span class="lane-dot" aria-hidden="true"></span><span>${P[s]}</span></div>
-        <div class="cards"></div>`,a.appendChild(n)})})}function re(e){const t=document.querySelectorAll(`#board-${e} .lane`),a=[...I.values()].filter(s=>s.fleet===e);t.forEach(s=>{const n=s.dataset.lane,i=s.querySelector(".cards");if(!i)return;const c=a.filter(d=>d.status===n).sort((d,r)=>d.ts-r.ts);c.some(d=>$.get(d.id)!==n)&&(s.classList.remove("flash"),s.offsetWidth,s.classList.add("flash")),i.innerHTML=c.map(d=>{const r=$.get(d.id)!==d.status;return`
-        <div class="task-card ${d.status==="ci_failed"?"alert":""} ${r?"is-new":""}" title="${d.id}">
-          <span class="tc-label">${d.label}</span>
-          <span class="tc-branch">${d.branch}</span>
-          ${d.pr?`<span class="tc-pr">${d.pr}</span>`:""}
-        </div>`}).join(""),c.forEach(d=>$.set(d.id,n))})}function L(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function j(){const e=document.getElementById("evidence-list"),t=document.getElementById("evidence-count"),a=[...f].slice(-10).reverse();e.innerHTML=a.map(s=>`
+  `}function re(){const e=["pending","working","needs_input","ci_failed","changes_requested","review_pending","mergeable","merged"];["a","b"].forEach(t=>{const a=document.getElementById(`kanban-${t}`);e.forEach(s=>{const n=document.createElement("div");n.className="lane",n.dataset.lane=s,n.innerHTML=`
+        <div class="lane-head"><span class="lane-dot" aria-hidden="true"></span><span>${j[s]}</span></div>
+        <div class="cards"></div>`,a.appendChild(n)})})}function le(e){const t=document.querySelectorAll(`#board-${e} .lane`),a=[...I.values()].filter(s=>s.fleet===e);t.forEach(s=>{const n=s.dataset.lane,d=s.querySelector(".cards");if(!d)return;const c=a.filter(i=>i.status===n).sort((i,r)=>i.ts-r.ts);c.some(i=>$.get(i.id)!==n)&&(s.classList.remove("flash"),s.offsetWidth,s.classList.add("flash")),d.innerHTML=c.map(i=>{const r=$.get(i.id)!==i.status;return`
+        <div class="task-card ${i.status==="ci_failed"?"alert":""} ${r?"is-new":""}" title="${i.id}">
+          <span class="tc-label">${i.label}</span>
+          <span class="tc-branch">${i.branch}</span>
+          ${i.pr?`<span class="tc-pr">${i.pr}</span>`:""}
+        </div>`}).join(""),c.forEach(i=>$.set(i.id,n))})}function L(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function D(){const e=document.getElementById("evidence-list"),t=document.getElementById("evidence-count"),a=[...f].slice(-10).reverse();e.innerHTML=a.map(s=>`
     <li class="evidence-item ${s.severity}">
       <div class="ev-head">
         <span class="ev-cat">${L(s.category)}</span>
@@ -268,11 +268,11 @@
              <summary>evidence</summary>
              <pre class="evidence-snippet"><code>${L(s.evidence)}</code></pre>
            </details>`:""}
-    </li>`).join(""),t.textContent=`${f.length} finding${f.length!==1?"s":""}`}function M(){const e=document.getElementById("score-a-pill"),t=document.getElementById("score-b-pill");h(e,Math.round(u[0])),h(t,Math.round(u[1])),[e,t].forEach(a=>{a.classList.remove("score-pulse"),a.offsetWidth,a.classList.add("score-pulse")})}function D(e){const t=document.getElementById("status-badge"),a=document.getElementById("status-display"),s=document.getElementById("replay-match");if(!e||e.status==="idle"){t.className="badge badge-neutral",t.textContent="idle";return}if(e.status==="running"){t.className="badge badge-cyan",t.textContent="running",s.style.display="none",a.innerHTML=`
+    </li>`).join(""),t.textContent=`${f.length} finding${f.length!==1?"s":""}`}function S(){const e=document.getElementById("score-a-pill"),t=document.getElementById("score-b-pill");h(e,Math.round(u[0])),h(t,Math.round(u[1])),[e,t].forEach(a=>{a.classList.remove("score-pulse"),a.offsetWidth,a.classList.add("score-pulse")})}function q(e){const t=document.getElementById("status-badge"),a=document.getElementById("status-display"),s=document.getElementById("replay-match");if(!e||e.status==="idle"){t.className="badge badge-neutral",t.textContent="idle";return}if(e.status==="running"){t.className="badge badge-cyan",t.textContent="running",s.style.display="none",a.innerHTML=`
       <span class="badge badge-cyan"><span class="live-dot" aria-hidden="true"></span> running</span>
       <p class="status-detail">${e.detail||"Fleets are working — real worktrees, real tests."}</p>`;return}if(e.status==="complete"){t.className="badge badge-ok",t.textContent="complete",s.style.display="block",a.innerHTML=`
       <span class="badge badge-ok">complete</span>
-      <p class="status-detail">Winner: <strong>${le()}</strong> · Fleet A ${Math.round(u[0])} : ${Math.round(u[1])} Fleet B</p>`;return}e.status==="error"&&(t.className="badge badge-danger",t.textContent="error",a.innerHTML=`<p class="status-detail" style="color: var(--danger);">${e.detail||"match failed"}</p>`)}function le(){return u[0]>u[1]?"Fleet A":u[1]>u[0]?"Fleet B":"Draw"}function k(e,t){switch(e){case"session":I.set(t.id,t),re(t.fleet);break;case"referee":f.push(t),j();break;case"score":u=[t[0],t[1]],M();break;case"status":D(t);break}}function oe(){g=H(),g.onSession(e=>k("session",e)),g.onReferee(e=>k("referee",e)),g.onScore((e,t)=>k("score",[e,t])),g.onClock(e=>{const t=document.getElementById("clock");if(!t)return;const a=Math.floor(e/1e3);t.textContent=`${String(Math.floor(a/60)).padStart(2,"0")}:${String(a%60).padStart(2,"0")}`}),g.onStatus(e=>k("status",e)),g.start()}async function pe(){const e=document.getElementById("replay-match"),t=document.getElementById("status-badge");if(!(!e||e.disabled)){e.disabled=!0,e.textContent="Replaying…";try{const{events:a}=await X();if(!a.length){e.textContent="No replay yet",setTimeout(()=>{e.textContent="Replay last match",e.disabled=!1},1600);return}I.clear(),f.length=0,$.clear(),u=[0,0],M(),j(),["a","b"].forEach(s=>{document.querySelectorAll(`#board-${s} .cards`).forEach(n=>n.innerHTML="")}),t.className="badge badge-cyan",t.textContent="replay";for(let s=0;s<a.length;s++){const n=a[s];k(n.kind,n.data),await new Promise(i=>setTimeout(i,420))}}catch{t.className="badge badge-neutral",t.textContent="idle"}finally{e.disabled=!1,e.textContent="Replay last match"}}}function ue(){var e,t;return ce(),oe(),fetch("/api/match/status").then(a=>a.json()).then(a=>{(a==null?void 0:a.status)==="complete"&&a.fleet_a&&a.fleet_b&&(u=[a.fleet_a.trust_score??0,a.fleet_b.trust_score??0],M(),D({status:"complete",detail:"Match complete — press replay to watch it again."}))}).catch(()=>{}),(e=document.getElementById("run-match"))==null||e.addEventListener("click",async()=>{const a=document.getElementById("run-match");a.disabled=!0,a.classList.add("is-loading");const s=document.getElementById("status-badge");s.className="badge badge-cyan",s.textContent="starting";try{await U();const n=setInterval(()=>{s.textContent==="complete"&&(a.disabled=!1,a.classList.remove("is-loading"),clearInterval(n))},400)}catch{s.className="badge badge-danger",s.textContent="error",a.disabled=!1,a.classList.remove("is-loading")}}),(t=document.getElementById("replay-match"))==null||t.addEventListener("click",pe),()=>{g==null||g.stop(),g=null,I.clear(),f.length=0,$.clear(),u=[0,0]}}const ve=`diff --git a/auth/auth_test.go b/auth/auth_test.go
+      <p class="status-detail">Winner: <strong>${oe()}</strong> · Fleet A ${Math.round(u[0])} : ${Math.round(u[1])} Fleet B</p>`;return}e.status==="error"&&(t.className="badge badge-danger",t.textContent="error",a.innerHTML=`<p class="status-detail" style="color: var(--danger);">${e.detail||"match failed"}</p>`)}function oe(){return u[0]>u[1]?"Fleet A":u[1]>u[0]?"Fleet B":"Draw"}function k(e,t){switch(e){case"session":I.set(t.id,t),le(t.fleet);break;case"referee":f.push(t),D();break;case"score":u=[t[0],t[1]],S();break;case"status":q(t);break}}function pe(){m=P(),m.onSession(e=>k("session",e)),m.onReferee(e=>k("referee",e)),m.onScore((e,t)=>k("score",[e,t])),m.onStatus(e=>k("status",e)),m.start()}async function ue(){const e=document.getElementById("replay-match"),t=document.getElementById("status-badge");if(!(!e||e.disabled)){e.disabled=!0,e.textContent="Replaying…";try{const{events:a}=await Y();if(!a.length){e.textContent="No replay yet",setTimeout(()=>{e.textContent="Replay last match",e.disabled=!1},1600);return}I.clear(),f.length=0,$.clear(),u=[0,0],S(),D(),["a","b"].forEach(s=>{document.querySelectorAll(`#board-${s} .cards`).forEach(n=>n.innerHTML="")}),t.className="badge badge-cyan",t.textContent="replay";for(let s=0;s<a.length;s++){const n=a[s];k(n.kind,n.data),await new Promise(d=>setTimeout(d,420))}}catch{t.className="badge badge-neutral",t.textContent="idle"}finally{e.disabled=!1,e.textContent="Replay last match"}}}function ve(){var e,t;return re(),pe(),fetch("/api/match/status").then(a=>a.json()).then(a=>{(a==null?void 0:a.status)==="complete"&&a.fleet_a&&a.fleet_b&&(u=[a.fleet_a.trust_score??0,a.fleet_b.trust_score??0],S(),q({status:"complete",detail:"Match complete — press replay to watch it again."}))}).catch(()=>{}),(e=document.getElementById("run-match"))==null||e.addEventListener("click",async()=>{const a=document.getElementById("run-match");a.disabled=!0,a.classList.add("is-loading");const s=document.getElementById("status-badge");s.className="badge badge-cyan",s.textContent="starting";try{await J();const n=setInterval(()=>{s.textContent==="complete"&&(a.disabled=!1,a.classList.remove("is-loading"),clearInterval(n))},400)}catch{s.className="badge badge-danger",s.textContent="error",a.disabled=!1,a.classList.remove("is-loading")}}),(t=document.getElementById("replay-match"))==null||t.addEventListener("click",ue),()=>{m==null||m.stop(),m=null,I.clear(),f.length=0,$.clear(),u=[0,0]}}const ge=`diff --git a/auth/auth_test.go b/auth/auth_test.go
 --- a/auth/auth_test.go
 +++ b/auth/auth_test.go
 @@ -13,3 +13,5 @@
@@ -282,7 +282,7 @@
 +			_ = machenhance.Generate() // hallucinated API — resolves nowhere
 +		}
  	}
-`,ge=`diff --git a/auth/auth.go b/auth/auth.go
+`,me=`diff --git a/auth/auth.go b/auth/auth.go
 --- a/auth/auth.go
 +++ b/auth/auth.go
 @@ -10,6 +10,10 @@
@@ -294,10 +294,10 @@
 +		return "", ""
 +	}
  	return u.Token, nil
-`,me=`# example.com/rest-api-auth/auth
+`,he=`# example.com/rest-api-auth/auth
 ./auth/auth_test.go:16:13: undefined: machenhance
 FAIL	example.com/rest-api-auth/auth [build failed]
-`;function he(){return`
+`;function be(){return`
     <div class="page" id="audit">
       <main class="container">
         <div class="page-head">
@@ -355,23 +355,23 @@ FAIL	example.com/rest-api-auth/auth [build failed]
         </div>
       </main>
     </div>
-  `}function l(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function be(e){const t=e.evidence||e.evidence_path;return t?`
+  `}function l(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function fe(e){const t=e.evidence||e.evidence_path;return t?`
     <details class="evidence-detail">
       <summary>evidence · <code>${l(e.evidence_path||"inline")}</code></summary>
       <pre class="evidence-snippet"><code>${l(t)}</code></pre>
-    </details>`:""}function fe(e){var S,R,N;const t=document.getElementById("verdict-empty"),a=document.getElementById("verdict-body"),s=document.getElementById("verdict-badge"),n=!e.mergeable&&e.trust_score<70?"blocked":e.mergeable?"clean":"caution",i=n==="blocked"?"blocked":n==="clean"?"clean":"caution",c=Math.round(e.trust_score),o=n==="blocked"?"var(--danger)":n==="clean"?"var(--ok)":"var(--warn)",d=Math.max(0,Math.min(100,c));s.className=`badge badge-${n==="blocked"?"danger":n==="clean"?"ok":"amber"}`,s.textContent=i,t.style.display="none",a.style.display="block";const r=(e.findings??[]).length?(e.findings??[]).map(v=>`
+    </details>`:""}function ye(e){var R,N,F;const t=document.getElementById("verdict-empty"),a=document.getElementById("verdict-body"),s=document.getElementById("verdict-badge"),n=!e.mergeable&&e.trust_score<70?"blocked":e.mergeable?"clean":"caution",d=n==="blocked"?"blocked":n==="clean"?"clean":"caution",c=Math.round(e.trust_score),p=n==="blocked"?"var(--danger)":n==="clean"?"var(--ok)":"var(--warn)",i=Math.max(0,Math.min(100,c));s.className=`badge badge-${n==="blocked"?"danger":n==="clean"?"ok":"amber"}`,s.textContent=d,t.style.display="none",a.style.display="block";const r=(e.findings??[]).length?(e.findings??[]).map(v=>`
       <div class="finding ${v.severity}">
         <div class="f-head">
           <span class="badge badge-${v.severity==="critical"?"danger":v.severity==="warning"?"amber":"cyan"}">${v.severity}</span>
           <span class="f-cat">${l(v.category)}</span>
         </div>
         <p>${l(v.message)}</p>
-        ${be(v)}
+        ${fe(v)}
         ${v.suggestion?`<p class="f-sugg">↳ ${l(v.suggestion)}</p>`:""}
       </div>
     `).join(""):'<p class="body-sm" style="color: var(--ok);">No findings — every check passed.</p>';a.innerHTML=`
     <div class="verdict-top">
-      <div class="score-ring" style="--ring-color: ${o}; --ring-pct: ${d*3.6}deg;">
+      <div class="score-ring" style="--ring-color: ${p}; --ring-pct: ${i*3.6}deg;">
         <span>${c}</span>
       </div>
       <div class="verdict-summary">
@@ -401,10 +401,10 @@ FAIL	example.com/rest-api-auth/auth [build failed]
       <button class="btn btn-ghost" id="det-check">Determinism · run ×5</button>
     </div>
     <div id="proof-outcome"></div>
-  `,(S=document.getElementById("verify-receipt"))==null||S.addEventListener("click",()=>C(e,"verify")),(R=document.getElementById("tamper-test"))==null||R.addEventListener("click",()=>C(e,"tamper")),(N=document.getElementById("det-check"))==null||N.addEventListener("click",()=>C(e,"determinism"))}function F(e){const t=document.getElementById("verdict-empty"),a=document.getElementById("verdict-body"),s=document.getElementById("verdict-badge");s.className="badge badge-danger",s.textContent="error",t.style.display="flex",a.style.display="none",t.innerHTML=`
+  `,(R=document.getElementById("verify-receipt"))==null||R.addEventListener("click",()=>C(e,"verify")),(N=document.getElementById("tamper-test"))==null||N.addEventListener("click",()=>C(e,"tamper")),(F=document.getElementById("det-check"))==null||F.addEventListener("click",()=>C(e,"determinism"))}function H(e){const t=document.getElementById("verdict-empty"),a=document.getElementById("verdict-body"),s=document.getElementById("verdict-badge");s.className="badge badge-danger",s.textContent="error",t.style.display="flex",a.style.display="none",t.innerHTML=`
     <div class="score-ring ring-empty"><span>!</span></div>
     <p class="body-sm" style="color: var(--danger);">${l(e)}</p>
-  `}async function C(e,t){const a=document.getElementById("proof-outcome"),s=(n,i)=>{a.innerHTML=`<div class="proof-result ${i}">${n}</div>`};try{if(t==="verify"){const d=await _(e,e.receipt_hash);s(d.valid?`<strong>RECEIPT VERIFIED ✓</strong><br><span class="body-sm">recomputed <code>${l(d.recomputed)}</code> matches the receipt — the verdict is exactly as it was sealed.</span>`:`<strong>RECEIPT BROKEN ✗</strong><br><span class="body-sm">recomputed <code>${l(d.recomputed)}</code> ≠ claimed <code>${l(d.claimed)}</code>.</span>`,d.valid?"ok":"danger");return}if(t==="tamper"){const d=JSON.parse(JSON.stringify(e));d.findings.length?d.findings[0]={...d.findings[0],message:d.findings[0].message+" (edited by the attacker)"}:d.summary=d.summary+" — silently rewritten";const r=await _(d,e.receipt_hash);s(r.valid?'<strong>TAMPER WENT UNDETECTED ✗</strong><br><span class="body-sm">this should never happen — the receipt must break.</span>':`<strong>TAMPER CAUGHT ✓</strong><br><span class="body-sm">one finding edited → <code>${l(r.recomputed.slice(0,16))}…</code> ≠ <code>${l(r.claimed.slice(0,16))}…</code>. Edit any evidence, break the receipt.</span>`,r.valid?"danger":"ok");return}const n=document.getElementById("audit-diff"),i=document.getElementById("audit-body"),c=await J(n.value,i.value),o=c.receipts.map(d=>`<code>${l(d.slice(0,20))}…</code>`).join("<br>");s(c.deterministic?`<strong>DETERMINISTIC ✓ · ${c.runs} runs, ${c.receipts.length} identical receipts</strong><br><span class="body-sm">${o}</span><br><span class="body-sm">same diff → same verdict → same receipt. A judge-model cannot promise that.</span>`:`<strong>NON-DETERMINISTIC ✗</strong><br><span class="body-sm">${o}</span>`,c.deterministic?"ok":"danger")}catch(n){s(`proof failed: ${l(n.message)}`,"danger")}}function ye(){var n,i;const e=document.getElementById("audit-diff"),t=document.getElementById("audit-body"),a=document.getElementById("audit-build"),s=document.getElementById("run-audit");return(n=document.getElementById("load-theater"))==null||n.addEventListener("click",()=>{e.value=ve,t.value="Added tests and authentication for the login flow.",a.value=me,e.focus()}),(i=document.getElementById("load-clean"))==null||i.addEventListener("click",()=>{e.value=ge,t.value="Added a guard for empty tokens.",a.value="",e.focus()}),s.addEventListener("click",async()=>{const c=e.value.trim();if(!c){F("Paste a diff first — the referee audits the exact input you give it.");return}s.disabled=!0,s.textContent="Auditing…";const o=document.getElementById("verdict-badge");o.className="badge badge-cyan",o.textContent="running";try{const d=await G(c,t.value,[],a.value);fe(d)}catch(d){F(d.message)}finally{s.disabled=!1,s.textContent="Run Referee"}}),()=>{}}function Ee(){return`
+  `}async function C(e,t){const a=document.getElementById("proof-outcome"),s=(n,d)=>{a.innerHTML=`<div class="proof-result ${d}">${n}</div>`};try{if(t==="verify"){const i=await _(e,e.receipt_hash);s(i.valid?`<strong>RECEIPT VERIFIED ✓</strong><br><span class="body-sm">recomputed <code>${l(i.recomputed)}</code> matches the receipt — the verdict is exactly as it was sealed.</span>`:`<strong>RECEIPT BROKEN ✗</strong><br><span class="body-sm">recomputed <code>${l(i.recomputed)}</code> ≠ claimed <code>${l(i.claimed)}</code>.</span>`,i.valid?"ok":"danger");return}if(t==="tamper"){const i=JSON.parse(JSON.stringify(e));i.findings.length?i.findings[0]={...i.findings[0],message:i.findings[0].message+" (edited by the attacker)"}:i.summary=i.summary+" — silently rewritten";const r=await _(i,e.receipt_hash);s(r.valid?'<strong>TAMPER WENT UNDETECTED ✗</strong><br><span class="body-sm">this should never happen — the receipt must break.</span>':`<strong>TAMPER CAUGHT ✓</strong><br><span class="body-sm">one finding edited → <code>${l(r.recomputed.slice(0,16))}…</code> ≠ <code>${l(r.claimed.slice(0,16))}…</code>. Edit any evidence, break the receipt.</span>`,r.valid?"danger":"ok");return}const n=document.getElementById("audit-diff"),d=document.getElementById("audit-body"),c=await z(n.value,d.value),p=c.receipts.map(i=>`<code>${l(i.slice(0,20))}…</code>`).join("<br>");s(c.deterministic?`<strong>DETERMINISTIC ✓ · ${c.runs} runs, ${c.receipts.length} identical receipts</strong><br><span class="body-sm">${p}</span><br><span class="body-sm">same diff → same verdict → same receipt. A judge-model cannot promise that.</span>`:`<strong>NON-DETERMINISTIC ✗</strong><br><span class="body-sm">${p}</span>`,c.deterministic?"ok":"danger")}catch(n){s(`proof failed: ${l(n.message)}`,"danger")}}function Ee(){var n,d;const e=document.getElementById("audit-diff"),t=document.getElementById("audit-body"),a=document.getElementById("audit-build"),s=document.getElementById("run-audit");return(n=document.getElementById("load-theater"))==null||n.addEventListener("click",()=>{e.value=ge,t.value="Added tests and authentication for the login flow.",a.value=he,e.focus()}),(d=document.getElementById("load-clean"))==null||d.addEventListener("click",()=>{e.value=me,t.value="Added a guard for empty tokens.",a.value="",e.focus()}),s.addEventListener("click",async()=>{const c=e.value.trim();if(!c){H("Paste a diff first — the referee audits the exact input you give it.");return}s.disabled=!0,s.textContent="Auditing…";const p=document.getElementById("verdict-badge");p.className="badge badge-cyan",p.textContent="running";try{const i=await U(c,t.value,[],a.value);ye(i)}catch(i){H(i.message)}finally{s.disabled=!1,s.textContent="Run Referee"}}),()=>{}}function ke(){return`
     <div class="page" id="league">
       <main class="container container-wide">
         <div class="page-head">
@@ -461,9 +461,9 @@ FAIL	example.com/rest-api-auth/auth [build failed]
         </div>
       </main>
     </div>
-  `}function b(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function ke(e){return new Date(e).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}function $e(e,t){const a=document.getElementById("standings-body"),s=document.getElementById("league-count");if(s.textContent=`${t} record${t!==1?"s":""}`,s.className="badge badge-neutral",!e.length){a.innerHTML='<tr><td colspan="7" class="table-empty">No matches yet — run one in the Arena.</td></tr>';return}a.innerHTML=e.map((n,i)=>`
-    <tr class="${i<3?"podium":""}">
-      <td class="rank">${String(i+1).padStart(2,"0")}</td>
+  `}function b(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function $e(e){return new Date(e).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}function we(e,t){const a=document.getElementById("standings-body"),s=document.getElementById("league-count");if(s.textContent=`${t} record${t!==1?"s":""}`,s.className="badge badge-neutral",!e.length){a.innerHTML='<tr><td colspan="7" class="table-empty">No matches yet — run one in the Arena.</td></tr>';return}a.innerHTML=e.map((n,d)=>`
+    <tr class="${d<3?"podium":""}">
+      <td class="rank">${String(d+1).padStart(2,"0")}</td>
       <td class="fleet-name">${b(n.name)}</td>
       <td class="elo">${Math.round(n.elo)}</td>
       <td class="col-w">${n.wins}</td>
@@ -471,7 +471,7 @@ FAIL	example.com/rest-api-auth/auth [build failed]
       <td class="col-d">${n.draws}</td>
       <td>${n.matches}</td>
     </tr>
-  `).join("")}function we(e,t){return e==="audit"?t==="clean"?'<span class="badge badge-ok">clean</span>':'<span class="badge badge-danger">blocked</span>':t==="Fleet A"?'<span class="badge badge-fleet-a">Fleet A</span>':t==="Fleet B"?'<span class="badge badge-fleet-b">Fleet B</span>':'<span class="badge badge-neutral">draw</span>'}function Ie(e){const t=document.getElementById("ledger-badge"),a=document.getElementById("ledger-body");if(e.length===0){t.className="badge badge-neutral",t.textContent="empty season",a.innerHTML='<p class="body-sm text-muted">No records yet — the first match seeds the chain.</p>';return}t.className=e.verified?"badge badge-ok":"badge badge-danger",t.textContent=e.verified?`verified · ${e.length} seals`:`tampered · breaks at #${(e.broken_at??0)+1}`,a.innerHTML=`
+  `).join("")}function Ie(e,t){return e==="audit"?t==="clean"?'<span class="badge badge-ok">clean</span>':'<span class="badge badge-danger">blocked</span>':t==="Fleet A"?'<span class="badge badge-fleet-a">Fleet A</span>':t==="Fleet B"?'<span class="badge badge-fleet-b">Fleet B</span>':'<span class="badge badge-neutral">draw</span>'}function xe(e){const t=document.getElementById("ledger-badge"),a=document.getElementById("ledger-body");if(e.length===0){t.className="badge badge-neutral",t.textContent="empty season",a.innerHTML='<p class="body-sm text-muted">No records yet — the first match seeds the chain.</p>';return}t.className=e.verified?"badge badge-ok":"badge badge-danger",t.textContent=e.verified?`verified · ${e.length} seals`:`tampered · breaks at #${(e.broken_at??0)+1}`,a.innerHTML=`
     <div class="ledger-row">
       <span class="field-label">status</span>
       <span>${e.verified?"VERIFIED ✓ — every seal recomputes to its stored hash":"TAMPERED ✗ — chain breaks at record "+((e.broken_at??0)+1)}</span>
@@ -481,11 +481,11 @@ FAIL	example.com/rest-api-auth/auth [build failed]
       <code>${b(e.genesis)}</code>
     </div>
     <p class="body-sm text-muted" style="margin-top: var(--space-3);">The genesis hash is the season's published anchor. Open the CLI and run <code>ao-arena ledger verify</code> to confirm from the terminal.</p>
-  `}function xe(e){const t=document.getElementById("history-list");if(!e.length){t.innerHTML='<li class="history-empty">No activity yet.</li>';return}t.innerHTML=e.map(a=>`
+  `}function Le(e){const t=document.getElementById("history-list");if(!e.length){t.innerHTML='<li class="history-empty">No activity yet.</li>';return}t.innerHTML=e.map(a=>`
     <li class="history-item">
       <div class="history-head">
-        <span>${ke(a.created_at)} · ${b(a.kind)}</span>
-        ${we(a.kind,a.winner)}
+        <span>${$e(a.created_at)} · ${b(a.kind)}</span>
+        ${Ie(a.kind,a.winner)}
       </div>
       <div class="history-match">
         <span>${b(a.fleet_a)}</span>
@@ -494,7 +494,7 @@ FAIL	example.com/rest-api-auth/auth [build failed]
       </div>
       <p class="history-sum">${b(a.summary)}</p>
     </li>
-  `).join("")}function Le(){var t;async function e(){try{const[a,s,n]=await Promise.all([Q(),Z(),z()]);$e(a.standings,a.matches),xe(s.history),Ie(n.chain)}catch{const a=document.getElementById("standings-body");a.innerHTML='<tr><td colspan="7" class="table-empty">Could not reach the league store.</td></tr>'}}return(t=document.getElementById("refresh-league"))==null||t.addEventListener("click",e),e(),()=>{}}const A=new Map,T=[],q=["working","ci_failed","review_pending","mergeable","merged"];let m=null;function Ce(){return`
+  `).join("")}function Ce(){var t;async function e(){try{const[a,s,n]=await Promise.all([Z(),ee(),X()]);we(a.standings,a.matches),Le(s.history),xe(n.chain)}catch{const a=document.getElementById("standings-body");a.innerHTML='<tr><td colspan="7" class="table-empty">Could not reach the league store.</td></tr>'}}return(t=document.getElementById("refresh-league"))==null||t.addEventListener("click",e),e(),()=>{}}const A=new Map,T=[],V=["working","ci_failed","review_pending","mergeable","merged"];let g=null;function Be(){return`
     <div class="overlay" id="overlay">
       <header class="ov-top">
         <div class="ov-brand">AO<span>▲</span>ARENA</div>
@@ -534,24 +534,24 @@ FAIL	example.com/rest-api-auth/auth [build failed]
         </div>
       </footer>
     </div>
-  `}function Be(){["a","b"].forEach(e=>{const t=document.getElementById(`ov-lanes-${e}`);t.innerHTML=q.map(a=>`
+  `}function _e(){["a","b"].forEach(e=>{const t=document.getElementById(`ov-lanes-${e}`);t.innerHTML=V.map(a=>`
       <div class="ov-lane" data-lane="${a}">
-        <div class="ov-lane-label">${P[a]}</div>
+        <div class="ov-lane-label">${j[a]}</div>
         <div class="ov-lane-cards" id="ov-lane-${e}-${a}">0</div>
-      </div>`).join("")})}function _e(e){const t=[...A.values()].filter(s=>s.fleet===e),a=document.getElementById(`ov-count-${e}`);a.textContent=`${t.length} card${t.length!==1?"s":""}`,q.forEach(s=>{const n=document.getElementById(`ov-lane-${e}-${s}`);n.textContent=String(t.filter(i=>i.status===s).length)})}function Ae(){const e=document.getElementById("ov-ticker-track"),t=T.slice(-12).map(a=>`<span class="ticker-item ${a.severity==="critical"?"crit":""}">[${a.severity}] ${a.category} · ${a.message}</span>`).join("");t&&(e.innerHTML=t+t)}function Te(){return Be(),m=H(),m.onSession(e=>{A.set(e.id,e),_e(e.fleet)}),m.onReferee(e=>{if(T.push(e),Ae(),e.fleet==="a"||e.fleet==="b"){const t=document.getElementById(`ov-state-${e.fleet}`);t.textContent=e.severity==="critical"?"caught · blocked":"verified"}}),m.onScore((e,t)=>{h(document.getElementById("ov-score-a"),Math.round(e),900),h(document.getElementById("ov-score-b"),Math.round(t),900)}),m.onStatus(e=>{(e==null?void 0:e.status)==="running"&&(document.getElementById("ov-state-a").textContent="working",document.getElementById("ov-state-b").textContent="working")}),m.start(),fetch("/api/match/status").then(e=>e.json()).then(e=>{(e==null?void 0:e.status)==="complete"&&(h(document.getElementById("ov-score-a"),Math.round(e.fleet_a.trust_score),900),h(document.getElementById("ov-score-b"),Math.round(e.fleet_b.trust_score),900),document.getElementById("ov-state-a").textContent=e.fleet_a.tests_pass?"verified":"caught · blocked",document.getElementById("ov-state-b").textContent=e.fleet_b.tests_pass?"verified":"caught · blocked")}).catch(()=>{}),()=>{m==null||m.stop(),m=null,A.clear(),T.length=0}}function p(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function Me(e){const t=e.findings??[];return t.length?t.map(a=>`
+      </div>`).join("")})}function Ae(e){const t=[...A.values()].filter(s=>s.fleet===e),a=document.getElementById(`ov-count-${e}`);a.textContent=`${t.length} card${t.length!==1?"s":""}`,V.forEach(s=>{const n=document.getElementById(`ov-lane-${e}-${s}`);n.textContent=String(t.filter(d=>d.status===s).length)})}function Te(){const e=document.getElementById("ov-ticker-track"),t=T.slice(-12).map(a=>`<span class="ticker-item ${a.severity==="critical"?"crit":""}">[${a.severity}] ${a.category} · ${a.message}</span>`).join("");t&&(e.innerHTML=t+t)}function Me(){return _e(),g=P(),g.onSession(e=>{A.set(e.id,e),Ae(e.fleet)}),g.onReferee(e=>{if(T.push(e),Te(),e.fleet==="a"||e.fleet==="b"){const t=document.getElementById(`ov-state-${e.fleet}`);t.textContent=e.severity==="critical"?"caught · blocked":"verified"}}),g.onScore((e,t)=>{h(document.getElementById("ov-score-a"),Math.round(e),900),h(document.getElementById("ov-score-b"),Math.round(t),900)}),g.onStatus(e=>{(e==null?void 0:e.status)==="running"&&(document.getElementById("ov-state-a").textContent="working",document.getElementById("ov-state-b").textContent="working")}),g.start(),fetch("/api/match/status").then(e=>e.json()).then(e=>{(e==null?void 0:e.status)==="complete"&&(h(document.getElementById("ov-score-a"),Math.round(e.fleet_a.trust_score),900),h(document.getElementById("ov-score-b"),Math.round(e.fleet_b.trust_score),900),document.getElementById("ov-state-a").textContent=e.fleet_a.tests_pass?"verified":"caught · blocked",document.getElementById("ov-state-b").textContent=e.fleet_b.tests_pass?"verified":"caught · blocked")}).catch(()=>{}),()=>{g==null||g.stop(),g=null,A.clear(),T.length=0}}function o(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function Se(e){const t=e.findings??[];return t.length?t.map(a=>`
     <div class="finding ${a.severity}">
       <div class="f-head">
         <span class="badge badge-${a.severity==="critical"?"danger":a.severity==="warning"?"amber":"cyan"}">${a.severity}</span>
-        <span class="f-cat">${p(a.category)}</span>
+        <span class="f-cat">${o(a.category)}</span>
       </div>
-      <p>${p(a.message)}</p>
+      <p>${o(a.message)}</p>
       ${a.evidence||a.evidence_path?`
         <details class="evidence-detail">
-          <summary>evidence · <code>${p(a.evidence_path||"inline")}</code></summary>
-          <pre class="evidence-snippet"><code>${p(a.evidence||a.evidence_path||"")}</code></pre>
+          <summary>evidence · <code>${o(a.evidence_path||"inline")}</code></summary>
+          <pre class="evidence-snippet"><code>${o(a.evidence||a.evidence_path||"")}</code></pre>
         </details>`:""}
-      ${a.suggestion?`<p class="f-sugg">↳ ${p(a.suggestion)}</p>`:""}
-    </div>`).join(""):'<p class="body-sm" style="color: var(--ok);">No findings — every check passed.</p>'}function B(e,t){const a=e.checks_run??[],s=!e.mergeable&&e.trust_score<70?"blocked":e.mergeable?"clean":"caution",n=Math.round(e.trust_score),i=s==="blocked"?"var(--danger)":s==="clean"?"var(--ok)":"var(--warn)",c=Math.max(0,Math.min(100,n));return`
+      ${a.suggestion?`<p class="f-sugg">↳ ${o(a.suggestion)}</p>`:""}
+    </div>`).join(""):'<p class="body-sm" style="color: var(--ok);">No findings — every check passed.</p>'}function B(e,t){const a=e.checks_run??[],s=!e.mergeable&&e.trust_score<70?"blocked":e.mergeable?"clean":"caution",n=Math.round(e.trust_score),d=s==="blocked"?"var(--danger)":s==="clean"?"var(--ok)":"var(--warn)",c=Math.max(0,Math.min(100,n));return`
     <div class="panel">
       <div class="panel-head">
         <h3>${t}</h3>
@@ -559,23 +559,23 @@ FAIL	example.com/rest-api-auth/auth [build failed]
       </div>
       <div class="panel-body">
         <div class="verdict-top">
-          <div class="score-ring" style="--ring-color: ${i}; --ring-pct: ${c*3.6}deg;"><span>${n}</span></div>
+          <div class="score-ring" style="--ring-color: ${d}; --ring-pct: ${c*3.6}deg;"><span>${n}</span></div>
           <div class="verdict-summary">
-            <p>${p(e.summary)}</p>
+            <p>${o(e.summary)}</p>
             <div class="flex gap-2" style="margin-top: var(--space-3); flex-wrap: wrap;">
             <span class="badge badge-neutral">${e.duration_ms}ms</span>
             <span class="badge badge-neutral">${a.length} checks</span>
-            <span class="badge badge-neutral">${p(e.pr_ref)}</span>
+            <span class="badge badge-neutral">${o(e.pr_ref)}</span>
             </div>
           </div>
         </div>
-        <div class="findings" style="margin-top: var(--space-5);">${Me(e)}</div>
+        <div class="findings" style="margin-top: var(--space-5);">${Se(e)}</div>
         <div class="receipt" style="margin-top: var(--space-5);">
           <div class="field-label">Receipt · tamper-evident</div>
-          <code>${p(e.receipt_hash)}</code>
+          <code>${o(e.receipt_hash)}</code>
         </div>
       </div>
-    </div>`}function Se(e){return`
+    </div>`}function Re(e){return`
     <div class="page" id="receipt">
       <main class="container">
         <div class="page-head">
@@ -583,25 +583,25 @@ FAIL	example.com/rest-api-auth/auth [build failed]
             <div class="kicker">Public receipt</div>
             <h1 class="display-1" style="margin-top: var(--space-3);">Verdict · sealed</h1>
           </div>
-          <span class="badge badge-neutral" id="receipt-badge">resolving ${p(e.slice(0,12))}…</span>
+          <span class="badge badge-neutral" id="receipt-badge">resolving ${o(e.slice(0,12))}…</span>
         </div>
         <div id="receipt-body" class="receipt-body">
           <p class="body-sm text-muted">Resolving the receipt against the league store…</p>
         </div>
       </main>
     </div>
-  `}function Re(e){return(async()=>{var c;const t=document.getElementById("receipt-body"),a=document.getElementById("receipt-badge");let s;try{s=await Y(e)}catch{a.className="badge badge-danger",a.textContent="not found",t.innerHTML=`<p class="body-sm" style="color: var(--danger);">Could not resolve <code>${p(e)}</code>. Receipts are valid only for verdicts recorded in this arena's league store.</p>`;return}if(!s.found){a.className="badge badge-danger",a.textContent="not found",t.innerHTML=`<p class="body-sm" style="color: var(--danger);">No verdict carries the receipt <code>${p(e)}</code>.</p>`;return}a.className="badge badge-ok",a.textContent="sealed · verified";const n=s.created_at?new Date(s.created_at).toLocaleString():"";let i="";s.kind==="audit"&&s.verdict?i=B(s.verdict,"Audit ruling"):s.fleet_a&&s.fleet_b?i=`
+  `}function Ne(e){return(async()=>{var c;const t=document.getElementById("receipt-body"),a=document.getElementById("receipt-badge");let s;try{s=await Q(e)}catch{a.className="badge badge-danger",a.textContent="not found",t.innerHTML=`<p class="body-sm" style="color: var(--danger);">Could not resolve <code>${o(e)}</code>. Receipts are valid only for verdicts recorded in this arena's league store.</p>`;return}if(!s.found){a.className="badge badge-danger",a.textContent="not found",t.innerHTML=`<p class="body-sm" style="color: var(--danger);">No verdict carries the receipt <code>${o(e)}</code>.</p>`;return}a.className="badge badge-ok",a.textContent="sealed · verified";const n=s.created_at?new Date(s.created_at).toLocaleString():"";let d="";s.kind==="audit"&&s.verdict?d=B(s.verdict,"Audit ruling"):s.fleet_a&&s.fleet_b?d=`
         <div class="receipt-grid">
           ${B(s.fleet_a,"Fleet A")}
           ${B(s.fleet_b,"Fleet B")}
-        </div>`:i=`<p class="body-sm text-muted">${p(s.summary||"")} · winner ${p(s.winner||"")} · ${String(s.score_a??0)} : ${String(s.score_b??0)}</p>`,t.innerHTML=`
-      <p class="lede" style="margin: var(--space-5) 0;">Ruling recorded ${p(n||"this season")}. Every verdict below is sealed into the arena's tamper-evident trust ledger.</p>
-      ${i}
+        </div>`:d=`<p class="body-sm text-muted">${o(s.summary||"")} · winner ${o(s.winner||"")} · ${String(s.score_a??0)} : ${String(s.score_b??0)}</p>`,t.innerHTML=`
+      <p class="lede" style="margin: var(--space-5) 0;">Ruling recorded ${o(n||"this season")}. Every verdict below is sealed into the arena's tamper-evident trust ledger.</p>
+      ${d}
       <div class="flex gap-2" style="margin-top: var(--space-5);">
         <button class="btn btn-ghost" id="receipt-verify">Verify this receipt</button>
         <span class="body-sm text-muted" id="receipt-outcome"></span>
       </div>
-    `,(c=document.getElementById("receipt-verify"))==null||c.addEventListener("click",async()=>{const o=document.getElementById("receipt-outcome"),d=s.verdict??s.fleet_a??s.fleet_b;if(d)try{const r=await _(d,e);o.textContent=r.valid?`✓ ${r.recomputed.slice(0,16)}… — matches the sealed receipt`:`✗ ${r.recomputed.slice(0,16)}… — receipt broken`}catch(r){o.textContent=`verify failed: ${r.message}`}})})(),()=>{}}const Ne={landing:{render:()=>se(),mount:ne},arena:{render:de,mount:ue},audit:{render:he,mount:ye},league:{render:Ee,mount:Le},overlay:{render:Ce,mount:Te,bare:!0},receipt:{render:()=>"",mount:()=>()=>{}}},O=document.getElementById("app");let V="landing",E=null;function Fe(){return`
+    `,(c=document.getElementById("receipt-verify"))==null||c.addEventListener("click",async()=>{const p=document.getElementById("receipt-outcome"),i=s.verdict??s.fleet_a??s.fleet_b;if(i)try{const r=await _(i,e);p.textContent=r.valid?`✓ ${r.recomputed.slice(0,16)}… — matches the sealed receipt`:`✗ ${r.recomputed.slice(0,16)}… — receipt broken`}catch(r){p.textContent=`verify failed: ${r.message}`}})})(),()=>{}}const Fe={landing:{render:()=>ne(),mount:ie},arena:{render:ce,mount:ve},audit:{render:be,mount:Ee},league:{render:ke,mount:Ce},overlay:{render:Be,mount:Me,bare:!0},receipt:{render:()=>"",mount:()=>()=>{}}},O=document.getElementById("app");let K="landing",E=null;function He(){return`
     <nav class="pillnav" aria-label="Primary">
       <button class="logo" data-nav="landing">AO<span class="logo-accent">▲</span>ARENA</button>
       <div class="pillnav-links">
@@ -612,5 +612,5 @@ FAIL	example.com/rest-api-auth/auth [build failed]
       <span id="clock" class="pillnav-clock">--:--</span>
       <a class="pillnav-gh" href="https://github.com/shashank-tomar0/ao-arena" target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
-  `}function x(e){E==null||E(),E=null,V=e;const t=e==="receipt"?location.hash.replace(/^#r\//,""):"",a=e==="receipt"?{render:()=>Se(t),mount:()=>Re(t)}:Ne[e];O.innerHTML=(a.bare?"":Fe())+a.render(),document.querySelectorAll("[data-nav]").forEach(n=>{n.addEventListener("click",()=>x(n.dataset.nav))}),document.querySelectorAll(".nav-link").forEach(n=>{n.classList.toggle("active",n.dataset.nav===e)}),a.mount&&(E=a.mount()??null),document.querySelectorAll(".reveal").forEach((n,i)=>{n.style.setProperty("--reveal-delay",`${Math.min(i,8)*60}ms`)}),W(O),e!=="receipt"&&location.hash!==`#${e}`&&history.pushState({view:e},"",e==="landing"?"#":`#${e}`)}function K(){const e=location.hash.replace(/^#/,"");return e.startsWith("r/")?"receipt":["arena","audit","league","overlay"].includes(e)?e:"landing"}window.addEventListener("popstate",()=>x(K()));x(K());window.aoArena={navigate:x,get view(){return V}};
-//# sourceMappingURL=index-BBdKH_CP.js.map
+  `}function x(e){E==null||E(),E=null,K=e;const t=e==="receipt"?location.hash.replace(/^#r\//,""):"",a=e==="receipt"?{render:()=>Re(t),mount:()=>Ne(t)}:Fe[e];O.innerHTML=(a.bare?"":He())+a.render(),document.querySelectorAll("[data-nav]").forEach(n=>{n.addEventListener("click",()=>x(n.dataset.nav))}),document.querySelectorAll(".nav-link").forEach(n=>{n.classList.toggle("active",n.dataset.nav===e)}),a.mount&&(E=a.mount()??null),M(),document.querySelectorAll(".reveal").forEach((n,d)=>{n.style.setProperty("--reveal-delay",`${Math.min(d,8)*60}ms`)}),G(O),e!=="receipt"&&location.hash!==`#${e}`&&history.pushState({view:e},"",e==="landing"?"#":`#${e}`)}function W(){const e=location.hash.replace(/^#/,"");return e.startsWith("r/")?"receipt":["arena","audit","league","overlay"].includes(e)?e:"landing"}window.addEventListener("popstate",()=>x(W()));x(W());function M(){const e=document.getElementById("clock");if(!e)return;const t=new Date;e.textContent=[t.getHours(),t.getMinutes(),t.getSeconds()].map(a=>String(a).padStart(2,"0")).join(":")}function Oe(){M(),window.setInterval(M,1e3)}Oe();window.aoArena={navigate:x,get view(){return K}};
+//# sourceMappingURL=index-CGg7bfNe.js.map

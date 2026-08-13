@@ -247,12 +247,6 @@ function bindFeed() {
   feed.onSession((card) => dispatch('session', card));
   feed.onReferee((ev) => dispatch('referee', ev));
   feed.onScore((a, b) => dispatch('score', [a, b]));
-  feed.onClock((ms) => {
-    const el = document.getElementById('clock');
-    if (!el) return;
-    const s = Math.floor(ms / 1000);
-    el.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-  });
   feed.onStatus((st) => dispatch('status', st));
   feed.start();
 }

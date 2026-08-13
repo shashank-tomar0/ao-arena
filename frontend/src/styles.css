@@ -264,6 +264,10 @@ img, svg { display: block; max-width: 100%; }
   color: var(--accent-cyan);
   padding: 0 var(--space-2);
   white-space: nowrap;
+  /* Fixed-width tabular digits: the clock never shifts the nav layout. */
+  font-variant-numeric: tabular-nums;
+  min-width: 6.5ch;
+  text-align: center;
 }
 
 /* ============================================================

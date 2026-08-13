@@ -7,7 +7,6 @@ export interface Feed {
   onSession(cb: (card: SessionCard) => void): void;
   onReferee(cb: (ev: RefereeEvent) => void): void;
   onScore(cb: (a: number, b: number) => void): void;
-  onClock(cb: (ms: number) => void): void;
   onStatus(cb: (status: unknown) => void): void;
   start(): void;
   stop(): void;
@@ -19,11 +18,9 @@ export function liveFeed(): Feed {
     session: [] as Array<(c: SessionCard) => void>,
     referee: [] as Array<(e: RefereeEvent) => void>,
     score: [] as Array<(a: number, b: number) => void>,
-    clock: [] as Array<(ms: number) => void>,
     status: [] as Array<(s: unknown) => void>,
   };
   let es: EventSource | null = null;
-  const startedAt = Date.now();
 
   return {
     onSession(cb) {
@@ -34,9 +31,6 @@ export function liveFeed(): Feed {
     },
     onScore(cb) {
       cbs.score.push(cb);
-    },
-    onClock(cb) {
-      cbs.clock.push(cb);
     },
     onStatus(cb) {
       cbs.status.push(cb);
@@ -68,14 +62,12 @@ export function liveFeed(): Feed {
             break;
         }
       };
-      // Clock derived from page load; real match duration shows via SSE after.
-      const clockTimer = window.setInterval(() => {
-        cbs.clock.forEach((cb) => cb(Date.now() - startedAt));
-      }, 250);
-      es.addEventListener('close', () => window.clearInterval(clockTimer));
     },
+    // The pillnav clock is owned by app.ts (one app-lifetime interval); the
+    // feed only carries match events, so stop() cannot leak timers.
     stop() {
       es?.close();
+      es = null;
     },
     async runMatch() {
       const res = await fetch('/api/match', {

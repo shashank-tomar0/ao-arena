@@ -73,6 +73,10 @@ export function navigate(view: View): void {
 
   if (page.mount) cleanup = page.mount() ?? null;
 
+  // The nav is re-rendered with every navigation — paint the clock
+  // immediately instead of waiting for the next second-tick.
+  updateClock();
+
   // Scroll-reveal + stagger for this view's content.
   const reveals = document.querySelectorAll('.reveal');
   reveals.forEach((el, i) => {
@@ -96,6 +100,24 @@ window.addEventListener('popstate', () => navigate(viewFromHash()));
 
 // Boot to the hashed view (defaults to landing).
 navigate(viewFromHash());
+
+// The pillnav clock is a single app-lifetime interval — one writer, stable
+// tabular digits, alive on every page. (The old per-page timer leaked on
+// navigation and made the clock flicker between two values.)
+function updateClock(): void {
+  const el = document.getElementById('clock');
+  if (!el) return;
+  const now = new Date();
+  el.textContent =
+    [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map((n) => String(n).padStart(2, '0'))
+      .join(':');
+}
+function startClock(): void {
+  updateClock();
+  window.setInterval(updateClock, 1000);
+}
+startClock();
 
 // Expose for debugging.
 (window as any).aoArena = { navigate, get view() { return currentView; } };
