@@ -30,9 +30,10 @@ export function renderLanding(navigate: (v: View) => void): string {
         <div class="container">
           <div class="hero-grid">
             <div class="hero-copy">
+              <span class="ghost-word" aria-hidden="true">REFEREE</span>
               <div class="kicker reveal">AO Arena · trust layer for agent fleets</div>
               <h1 class="display-hero hero-title reveal">
-                Verification-as-officiating for <span class="accent-word">AI agent fleets</span>
+                Verification-as-officiating for <em class="accent-word">AI agent fleets</em>
               </h1>
               <p class="lede hero-lede reveal">
                 Agent velocity has outrun human inspection. PRs land containing hallucinated APIs,
@@ -209,7 +210,7 @@ export function renderLanding(navigate: (v: View) => void): string {
       <footer class="footer">
         <div class="container">
           <div class="footer-statement reveal">
-            Your agents are faster than your review.
+            Your agents are faster than <em>your review.</em>
           </div>
           <div class="footer-cta reveal" style="margin-top: var(--space-6);">
             <button class="btn btn-accent btn-lg" data-nav="arena">Enter the Arena →</button>

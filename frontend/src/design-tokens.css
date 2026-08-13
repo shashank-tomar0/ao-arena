@@ -1,65 +1,134 @@
 /*
- * AO Arena — Design tokens (Verdict Theatre system)
- * The identity: a live broadcast of a high-stakes match inside a courtroom —
- * void ink deck, signal cyan (trust), verdict amber (scores/wins),
- * caught red (critical), cheat magenta (dishonest fleet). Syne display +
- * JetBrains Mono. Sharp instrument bezels, scanline + seal + breach motion.
+ * AO Arena — Design tokens v4 (The Referee's Enhanced Docket)
+ *
+ * Anti-slop discipline. No glassmorphism, no floating pills, no soft orbs drifting
+ * around, no rainbow-everywhere. One chromatic signature (the tri-color sash + the
+ * gradient accent word), the rest is discipline: warm charcoal paper, bone-white
+ * ink, vivid broadcast signals — cyan trust, gold verdicts, caught-red fouls,
+ * phosphor-green clean — on a Swiss print grid with deliberate, premium color.
+ *
+ * Tektur (display wordmark) · Space Grotesk (UI/body) · Instrument Serif
+ * (editorial accent) · JetBrains Mono (data). Hairline rules, sharp corners,
+ * dot-grid paper, slow broadcast marquee. Intentional, not accidental.
+ *
+ * COLORS: Expanded but disciplined palette. One gradient family. No neutral
+ * rainbow. Each color has one job.
  */
 
 :root {
-  /* === VOID INK — the arena deck (OKLCH, blue-violet cast) === */
-  --paper-0: oklch(0.115 0.02 285);   /* page — the void */
-  --paper-1: oklch(0.15 0.025 285);   /* raised plate */
-  --paper-2: oklch(0.185 0.03 285);   /* instrument well */
-  --paper-3: oklch(0.23 0.035 285);   /* hover well */
+  /* === WARM INK — the docket paper (OKLCH, warm cast — deliberately NO blue) === */
+  --paper-0: oklch(0.148 0.009 75);   /* page — warm charcoal */
+  --paper-1: oklch(0.178 0.010 75);   /* raised plate */
+  --paper-2: oklch(0.214 0.011 75);   /* instrument well */
+  --paper-3: oklch(0.262 0.013 75);   /* hover well */
+  --paper-4: oklch(0.315 0.014 75);   /* elevated hover */
 
-  --ink-0: oklch(0.95 0.012 285);     /* primary text */
-  --ink-1: oklch(0.70 0.03 285);      /* secondary text */
-  --ink-2: oklch(0.52 0.035 285);     /* tertiary text */
-  --ink-3: oklch(0.40 0.03 285);      /* disabled / placeholder */
+  /* === BONE INK — paper text hierarchy === */
+  --ink-0: oklch(0.955 0.015 85);      /* primary — bone white, slightly warmer */
+  --ink-1: oklch(0.78 0.013 86);       /* secondary */
+  --ink-2: oklch(0.60 0.015 82);       /* tertiary */
+  --ink-3: oklch(0.44 0.013 76);       /* disabled / placeholder */
+  --ink-4: oklch(0.35 0.012 68);       /* muted secondary */
 
   /* === HAIRLINES — the rule language === */
-  --rule: oklch(0.28 0.04 285);
-  --rule-strong: oklch(0.36 0.05 285);
-  --rule-faint: oklch(0.21 0.035 285);
+  --rule: oklch(0.315 0.013 75);
+  --rule-strong: oklch(0.42 0.015 75);
+  --rule-faint: oklch(0.235 0.010 75);
+  --rule-accents: oklch(0.55 0.02 70); /* accent rule */
 
-  /* === SIGNAL ANCHORS === */
-  --accent-cyan: oklch(0.82 0.14 205);        /* signal cyan — trust / primary */
-  --accent-cyan-deep: oklch(0.72 0.13 205);   /* hover */
-  --accent-amber: oklch(0.87 0.16 85);        /* verdict amber — scores / wins */
-  --accent-amber-deep: oklch(0.78 0.15 85);   /* hover */
+  /* === THE BROADCAST SIGNALS — vivid, one job each, fully saturated === */
+  --cyan: oklch(0.82 0.18 205);        /* trust / primary / CTA — vivid */
+  --cyan-mid: oklch(0.74 0.16 205);
+  --cyan-deep: oklch(0.65 0.15 205);
+  --cyan-dim: oklch(0.82 0.18 205 / 0.13);
+
+  --gold: oklch(0.88 0.18 85);         /* verdict gold — scores / wins, richer */
+  --gold-mid: oklch(0.81 0.16 85);
+  --gold-deep: oklch(0.72 0.14 85);
+  --gold-dim: oklch(0.88 0.18 85 / 0.13);
+
+  --violet: oklch(0.78 0.20 305);      /* depth accent — more vibrant */
+  --violet-mid: oklch(0.69 0.18 305);
+  --violet-dim: oklch(0.78 0.20 305 / 0.13);
+
+  --red: oklch(0.70 0.23 25);          /* caught red — critical / fouls, brighter */
+  --red-deep: oklch(0.60 0.21 25);
+  --red-dim: oklch(0.70 0.23 25 / 0.13);
+
+  --green: oklch(0.84 0.18 150);       /* phosphor clean — honest, brighter */
+  --green-deep: oklch(0.74 0.15 150);
+  --green-dim: oklch(0.84 0.18 150 / 0.13);
+
+  --amber: oklch(0.90 0.17 75);        /* warn — caution, richer */
 
   /* === FLEET SIGNALS === */
-  --fleet-a: oklch(0.72 0.22 335);            /* cheat magenta — dishonest */
-  --fleet-b: oklch(0.72 0.15 205);            /* trust cyan — honest */
+  --fleet-a: var(--red);                        /* dishonest — foul */
+  --fleet-a-dim: var(--red-dim);
+  --fleet-b: var(--green);                      /* honest — clean */
+  --fleet-b-dim: var(--green-dim);
 
-  /* === SEMANTIC === */
-  --danger: oklch(0.68 0.21 25);              /* caught red */
-  --danger-deep: oklch(0.58 0.2 25);
-  --ok: oklch(0.82 0.14 205);                 /* trust cyan = clean */
-  --warn: oklch(0.87 0.16 85);                /* verdict amber */
+  /* === SEMANTIC — keep these names stable (referenced from TS) === */
+  --danger: var(--red);
+  --danger-deep: var(--red-deep);
+  --danger-dim: var(--red-dim);
+  --ok: var(--green);
+  --warn: var(--amber);
 
-  /* === GLOW — sparing, never blur-soup === */
-  --glow-cyan: 0 0 0 1px oklch(0.82 0.14 205 / 0.35), 0 0 30px oklch(0.82 0.14 205 / 0.14);
-  --glow-amber: 0 0 0 1px oklch(0.87 0.16 85 / 0.35), 0 0 30px oklch(0.87 0.16 85 / 0.14);
-  --glow-danger: 0 0 0 1px oklch(0.68 0.21 25 / 0.45), 0 0 26px oklch(0.68 0.21 25 / 0.2);
+  /* === CHROMATIC SIGNATURES — the ONE gradient family === */
+  --grad-accent: linear-gradient(115deg, var(--cyan) 0%, var(--violet) 55%, var(--gold) 100%);
+  --grad-ghost: linear-gradient(180deg, var(--cyan) 0%, var(--violet) 55%, var(--gold) 100%);
+  --grad-feature: linear-gradient(90deg, var(--cyan), var(--violet), var(--gold));
+  /* The referee sash — tri-color diagonal stripes, 4-6px tall, never anywhere else */
+  --grad-sash: repeating-linear-gradient(
+    -45deg,
+    var(--cyan) 0 10px, transparent 10px 20px,
+    var(--gold) 20px 30px, transparent 30px 40px,
+    var(--red) 40px 50px, transparent 50px 60px
+  );
 
-  /* === TYPOGRAPHY === */
-  --font-display: 'Syne', 'Space Grotesk', ui-monospace, monospace;
-  --font-ui: 'JetBrains Mono', ui-monospace, monospace;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* === AMBIENT WASHES — static chromatic atmosphere over the dot grid === */
+  --wash-cyan: oklch(0.82 0.18 205 / 0.06);
+  --wash-violet: oklch(0.78 0.20 305 / 0.05);
+  --wash-gold: oklch(0.88 0.18 85 / 0.05);
 
-  /* Fluid type scale — score numerals get their own monster sizes below */
-  --text-2xs: clamp(0.625rem, 0.58rem + 0.2vw, 0.7rem);
-  --text-xs: clamp(0.7rem, 0.65rem + 0.25vw, 0.8rem);
-  --text-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.9rem);
-  --text-base: clamp(0.9rem, 0.85rem + 0.3vw, 1.05rem);
-  --text-lg: clamp(1.05rem, 0.98rem + 0.35vw, 1.25rem);
-  --text-xl: clamp(1.3rem, 1.2rem + 0.5vw, 1.7rem);
-  --text-2xl: clamp(1.6rem, 1.45rem + 0.8vw, 2.3rem);
-  --text-3xl: clamp(2.1rem, 1.85rem + 1.3vw, 3.2rem);
-  --text-display: clamp(2.6rem, 2.2rem + 2.2vw, 4.6rem);   /* hero — 21–50 chars */
-  --text-display-s: clamp(2rem, 1.7rem + 1.6vw, 3.4rem);   /* hero — 51–90 chars */
+  /* === DOCKET PAPER — surfaces (solid, no blur) === */
+  --docket: var(--paper-1);
+  --docket-strong: var(--paper-2);
+  --docket-border: var(--rule);
+  --docket-border-strong: var(--rule-strong);
+
+  /* === SHADOWS — ink only, no glow === */
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.35);
+  --shadow-md: 0 6px 22px oklch(0 0 0 / 0.40), 0 1px 2px oklch(0 0 0 / 0.25);
+  --shadow-lg: 0 16px 48px oklch(0 0 0 / 0.48), 0 2px 6px oklch(0 0 0 / 0.25);
+  --shadow-xl: 0 32px 96px oklch(0 0 0 / 0.52), 0 4px 12px oklch(0 0 0 / 0.25);
+
+  /* === GLOW — kept only for the live/critical pulse dots, never surfaces === */
+  --glow-cyan: 0 0 0 1px oklch(0.82 0.18 205 / 0.40), 0 0 22px oklch(0.82 0.18 205 / 0.30);
+  --glow-red: 0 0 0 1px oklch(0.70 0.23 25 / 0.45), 0 0 24px oklch(0.70 0.23 25 / 0.30);
+  --glow-gold: 0 0 0 1px oklch(0.88 0.18 85 / 0.40), 0 0 22px oklch(0.88 0.18 85 / 0.25);
+  --glow-green: 0 0 0 1px oklch(0.84 0.18 150 / 0.40), 0 0 22px oklch(0.84 0.18 150 / 0.25);
+
+  /* === TYPOGRAPHY ===
+     Tektur — the referee wordmark: angular, engineered, unmistakable. The
+     anti-Inter. Space Grotesk — UI & body. Instrument Serif — delicate italic
+     accent. JetBrains Mono — every label, number, and hash. */
+  --font-display: 'Tektur', 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-ui: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+  --font-accent: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+
+  /* Fluid type scale — editorial, display-tight */
+  --text-2xs: clamp(0.625rem, 0.56rem + 0.22vw, 0.7rem);
+  --text-xs: clamp(0.7rem, 0.64rem + 0.28vw, 0.8rem);
+  --text-sm: clamp(0.8rem, 0.74rem + 0.28vw, 0.92rem);
+  --text-base: clamp(0.9rem, 0.84rem + 0.3vw, 1.05rem);
+  --text-lg: clamp(1.05rem, 0.96rem + 0.4vw, 1.28rem);
+  --text-xl: clamp(1.3rem, 1.18rem + 0.55vw, 1.75rem);
+  --text-2xl: clamp(1.65rem, 1.48rem + 0.85vw, 2.4rem);
+  --text-3xl: clamp(2.15rem, 1.88rem + 1.35vw, 3.3rem);
+  --text-display: clamp(2.4rem, 2.05rem + 1.9vw, 4.4rem);
+  --text-display-s: clamp(2.1rem, 1.75rem + 1.7vw, 3.5rem);
 
   /* === SPACE — 8pt base, fluid === */
   --space-1: clamp(0.25rem, 0.22rem + 0.15vw, 0.4rem);
@@ -73,48 +142,35 @@
   --space-12: clamp(3rem, 2.64rem + 1.8vw, 4.5rem);
   --space-16: clamp(4rem, 3.52rem + 2.4vw, 6rem);
   --space-20: clamp(5rem, 4.4rem + 3vw, 7.5rem);
+  --space-24: clamp(6rem, 5.28rem + 3.6vw, 8.5rem);
 
-  /* === RADIUS — sharp, machine-cut === */
+  /* === RADIUS — sharp editorial (killed the 16px candy) === */
   --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
   --radius-full: 999px;
 
-  /* === MOTION === */
+  /* === MOTION — snappy interactions, slow broadcast marquee === */
   --dur-fast: 120ms;
-  --dur-normal: 220ms;
-  --dur-slow: 420ms;
+  --dur-normal: 200ms;
+  --dur-slow: 400ms;
   --dur-glacial: 900ms;
-  --dur-breach: 900ms;   /* the CAUGHT alarm */
+  --dur-breach: 900ms;
+  --marquee-dur: 52s;   /* one full ticker pass — slower, readable, premium */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.4, 0, 0.7, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* === Z-INDEX === */
   --z-nav: 100;
   --z-raised: 10;
   --z-modal: 200;
-}
 
-/* Light mode — reserved, not shipped (the arena is dark) */
-@media (prefers-color-scheme: light) {
-  :root[data-theme='light'] {
-    --paper-0: oklch(0.97 0.006 285);
-    --paper-1: oklch(0.95 0.008 285);
-    --paper-2: oklch(0.92 0.01 285);
-    --paper-3: oklch(0.88 0.012 285);
-    --ink-0: oklch(0.15 0.03 285);
-    --ink-1: oklch(0.34 0.03 285);
-    --ink-2: oklch(0.48 0.03 285);
-    --ink-3: oklch(0.58 0.03 285);
-    --rule: oklch(0.84 0.02 285);
-    --rule-strong: oklch(0.74 0.03 285);
-    --rule-faint: oklch(0.90 0.015 285);
-    --accent-cyan: oklch(0.52 0.14 205);
-    --accent-cyan-deep: oklch(0.47 0.14 205);
-    --accent-amber: oklch(0.60 0.16 85);
-    --accent-amber-deep: oklch(0.55 0.16 85);
-  }
+  /* === SECTION COUNTER — editorial numbering (01 — …) === */
+  counter-reset: docket-section;
 }
 
 /* === REDUCED MOTION === */
@@ -132,4 +188,5 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .ticker-track, .ov-ticker-track { animation: none !important; }
 }

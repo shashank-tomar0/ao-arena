@@ -5,7 +5,7 @@
  */
 
 import './styles.css';
-import { initReveal } from './motion';
+import { initReveal, initGhostParallax } from './motion';
 import { renderLanding, mountLanding } from './pages/landing';
 import { renderArena, mountArena } from './pages/arena';
 import { renderAudit, mountAudit } from './pages/audit';
@@ -83,6 +83,7 @@ export function navigate(view: View): void {
     (el as HTMLElement).style.setProperty('--reveal-delay', `${Math.min(i, 8) * 60}ms`);
   });
   initReveal(app);
+  initGhostParallax(app);
 
   // Receipt pages keep their #r/<hash> address; everything else normalizes.
   if (view !== 'receipt' && location.hash !== `#${view}`) {
